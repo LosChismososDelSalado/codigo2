@@ -1809,6 +1809,7 @@ function efectoArquitecta(vfx) {
 
 
 
+// ─── 5. BOMBERA — Juego Sismo en el Azteca ──────────────────────
 function efectoBombera(vfx) {
     // ── KEYFRAMES (una sola vez) ──────────────────────────────────
     if (!document.getElementById('bom-kf')) {
@@ -1825,7 +1826,7 @@ function efectoBombera(vfx) {
     // ── LIMPIAR Y MONTAR CONTENEDOR ───────────────────────────────
     vfx.innerHTML = '';
     vfx.style.pointerEvents = 'auto';
-    vfx.style.overflow = 'hidden';   // ← TODO queda dentro del mural
+    vfx.style.overflow = 'hidden';
 
     // ── FONDO: estadio.png ocupa exactamente el vfx ──────────────
     const bgImg = document.createElement('div');
@@ -1845,24 +1846,29 @@ function efectoBombera(vfx) {
 
     // ══════════════════════════════════════════════════════════════
     // CAPAS Z-INDEX (de atrás → adelante), TODAS dentro del vfx:
+    //  0   fondo estadio
+    //  1   overlay oscuro
     //  2   llamas traseras  (lentas, tenues)
     //  4   llamas delanteras (rápidas, brillantes)
     //  6   recuadro del juego  (bom-wrap)
-    //  glow-bombera y glow-nina gestionados externamente
+    //
+    // PNG del mural (hijos de mural-container, fuera del vfx):
+    //  68  glow-bombera  (position:absolute dentro de mural-container)
+    //  70  glow-nina
     // ══════════════════════════════════════════════════════════════
 
-    // ── GLOW BLANCO: nina y bombera al frente ─────────────────────
+    // ── GLOW BLANCO: bombera y nina — dentro del stacking context del mural ──
     const glowNina    = document.getElementById('glow-nina');
     const glowBombera = document.getElementById('glow-bombera');
     if (glowNina) {
-        glowNina.style.zIndex  = '9988';
-        glowNina.style.position= 'relative';
-        glowNina.style.filter  = 'brightness(1.8) drop-shadow(0 0 18px #fff) drop-shadow(0 0 36px rgba(255,255,255,0.6))';
+        glowNina.style.zIndex   = '70';
+        glowNina.style.position = 'absolute';
+        glowNina.style.filter   = 'brightness(1.8) drop-shadow(0 0 18px #fff) drop-shadow(0 0 36px rgba(255,255,255,0.6))';
     }
     if (glowBombera) {
-        glowBombera.style.zIndex  = '9986';
-        glowBombera.style.position= 'relative';
-        glowBombera.style.filter  = 'brightness(1.8) drop-shadow(0 0 18px #fff) drop-shadow(0 0 36px rgba(255,255,255,0.6))';
+        glowBombera.style.zIndex   = '68';
+        glowBombera.style.position = 'absolute';
+        glowBombera.style.filter   = 'brightness(1.8) drop-shadow(0 0 18px #fff) drop-shadow(0 0 36px rgba(255,255,255,0.6))';
     }
 
     // ── LLUVIA DE FUEGO — capas absolutas dentro del vfx ─────────
@@ -1928,7 +1934,6 @@ function efectoBombera(vfx) {
         } catch(e) {}
     }
 
-    // Humo: absoluto dentro del vfx para no salir del mural
     function bomCreateSmoke(x, y) {
         for (let i = 0; i < 10; i++) {
             const p   = document.createElement('div');
@@ -1951,7 +1956,6 @@ function efectoBombera(vfx) {
         }
     }
 
-    // Llama trasera: lenta (8–12s), pequeña, tenue — posición relativa al vfx
     function bomCreateFlameBack() {
         if (fireLayerBack.querySelectorAll('.bom-fb').length >= 18) return;
         const fl  = document.createElement('div');
@@ -1971,7 +1975,6 @@ function efectoBombera(vfx) {
         setTimeout(() => { if (fl.parentNode) fl.remove(); }, dur * 1000 + 400);
     }
 
-    // Llama delantera: más rápida (4–6s), grande, brillante, tocable
     function bomCreateFlameFront() {
         if (fireLayerFront.querySelectorAll('.bom-ff').length >= 14) return;
         const fl  = document.createElement('div');
@@ -2035,11 +2038,9 @@ function efectoBombera(vfx) {
             dragging=true; el.style.cursor='grabbing';
             const pt = e.touches ? e.touches[0] : e;
             sx=pt.clientX; sy=pt.clientY;
-            // convertir left/bottom a top para poder moverlo libremente
             const par=el.parentElement;
             const parR=par.getBoundingClientRect();
             const elR=el.getBoundingClientRect();
-            // cambiar a top/left para el drag
             el.style.bottom='';
             el.style.top  = (elR.top  - parR.top)  + 'px';
             el.style.left = (elR.left - parR.left) + 'px';
@@ -2079,81 +2080,60 @@ function efectoBombera(vfx) {
     #bom-wrap .bom-header h2{font-size:clamp(11px,2.5vw,14px);font-weight:700;margin:0 0 2px;}
     #bom-wrap .bom-header p{font-size:clamp(8px,1.6vw,10px);opacity:.82;margin:0;}
     #bom-wrap .bom-header .bom-icon{font-size:clamp(18px,3.5vw,26px);margin-bottom:3px;}
-
     #bom-wrap .bom-scorebar{
-        width:100%;
-        display:flex;justify-content:space-between;align-items:center;
+        width:100%;display:flex;justify-content:space-between;align-items:center;
         background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.1);
         border-radius:7px;padding:4px 10px;font-size:clamp(9px,1.8vw,11px);color:#cfc;
     }
     #bom-wrap .bom-score-val{font-size:clamp(13px,2.5vw,16px);font-weight:700;color:#7df;}
     #bom-wrap .bom-lives{font-size:clamp(12px,2.5vw,15px);letter-spacing:2px;}
-
     #bom-wrap .bom-panel{
-        width:100%;
-        background:rgba(5,18,5,0.82);
-        border:1px solid rgba(100,255,100,0.18);
-        border-radius:10px;padding:clamp(8px,2%,12px);
-        backdrop-filter:blur(12px);
-        box-shadow:0 4px 24px rgba(0,0,0,0.6);
-        color:#e8ffe8;
-        animation:bomFadeUp .3s ease;
+        width:100%;background:rgba(5,18,5,0.82);
+        border:1px solid rgba(100,255,100,0.18);border-radius:10px;padding:clamp(8px,2%,12px);
+        backdrop-filter:blur(12px);box-shadow:0 4px 24px rgba(0,0,0,0.6);
+        color:#e8ffe8;animation:bomFadeUp .3s ease;
     }
-
     #bom-wrap .bom-scene{
-        background:rgba(0,0,0,0.42);
-        border:1px solid rgba(255,255,255,0.1);
-        border-radius:10px;padding:clamp(8px,2%,14px);
-        margin-bottom:8px;text-align:center;
+        background:rgba(0,0,0,0.42);border:1px solid rgba(255,255,255,0.1);
+        border-radius:10px;padding:clamp(8px,2%,14px);margin-bottom:8px;text-align:center;
     }
     #bom-wrap .bom-emoji{font-size:clamp(28px,6vw,44px);display:block;margin-bottom:6px;}
     #bom-wrap .bom-title{font-size:clamp(12px,2.8vw,15px);font-weight:600;color:#afffaf;margin-bottom:4px;}
     #bom-wrap .bom-desc{font-size:clamp(10px,2vw,12px);color:#b0c8b0;line-height:1.55;}
-
     #bom-wrap .bom-btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;}
     #bom-wrap .bom-btn-grid.single{grid-template-columns:1fr;}
-
     #bom-wrap .bom-choice{
-        background:rgba(10,35,10,0.82);
-        border:1px solid rgba(100,200,100,0.28);
+        background:rgba(10,35,10,0.82);border:1px solid rgba(100,200,100,0.28);
         border-radius:8px;padding:clamp(8px,2%,12px) 7px;
         font-size:clamp(9px,1.9vw,11px);color:#cfc;
-        cursor:pointer;text-align:center;line-height:1.4;
-        transition:background .15s,transform .1s;
+        cursor:pointer;text-align:center;line-height:1.4;transition:background .15s,transform .1s;
     }
     #bom-wrap .bom-choice:hover{background:rgba(20,70,20,0.9);}
     #bom-wrap .bom-choice:active{transform:scale(.97);}
     #bom-wrap .bom-choice.correct{background:rgba(30,100,30,0.9);border-color:#4c4;color:#afffaf;}
     #bom-wrap .bom-choice.wrong{background:rgba(100,20,20,0.9);border-color:#c44;color:#ffafaf;}
     #bom-wrap .bom-choice.disabled{pointer-events:none;opacity:.5;}
-
     #bom-wrap .bom-main-btn{
-        width:100%;
-        background:linear-gradient(135deg,#8B1A00,#5c1000);
+        width:100%;background:linear-gradient(135deg,#8B1A00,#5c1000);
         color:white;border:none;border-radius:8px;
         padding:clamp(9px,2%,13px);font-size:clamp(11px,2.4vw,14px);font-weight:600;
-        cursor:pointer;margin-top:6px;
-        transition:opacity .15s,transform .1s;
+        cursor:pointer;margin-top:6px;transition:opacity .15s,transform .1s;
         box-shadow:0 2px 12px rgba(200,50,0,0.4);
     }
     #bom-wrap .bom-main-btn:hover{opacity:.88;}
     #bom-wrap .bom-main-btn:active{transform:scale(.98);}
     #bom-wrap .bom-main-btn.green{background:linear-gradient(135deg,#3B6D11,#27500A);}
-
     #bom-wrap .bom-feedback{
-        border-radius:8px;padding:8px 11px;
-        font-size:clamp(9px,1.9vw,11px);line-height:1.55;
-        margin-top:6px;display:none;
+        border-radius:8px;padding:8px 11px;font-size:clamp(9px,1.9vw,11px);
+        line-height:1.55;margin-top:6px;display:none;
     }
     #bom-wrap .bom-feedback.show{display:block;}
     #bom-wrap .bom-feedback.good{background:rgba(30,80,10,0.82);color:#afffaf;border:1px solid #4c4;}
     #bom-wrap .bom-feedback.bad{background:rgba(80,10,10,0.82);color:#ffafaf;border:1px solid #c44;}
     #bom-wrap .bom-feedback.info{background:rgba(10,35,75,0.82);color:#adf;border:1px solid #48f;}
-
     #bom-wrap .bom-drag-zone{
         min-height:54px;border:1.5px dashed rgba(100,200,100,0.38);
-        border-radius:8px;padding:6px;
-        display:flex;flex-wrap:wrap;gap:5px;align-items:center;
+        border-radius:8px;padding:6px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;
         background:rgba(0,0,0,0.3);transition:background .2s;
     }
     #bom-wrap .bom-drag-zone.over{background:rgba(24,95,165,0.3);}
@@ -2165,15 +2145,12 @@ function efectoBombera(vfx) {
     #bom-wrap .bom-drag-item:active{cursor:grabbing;transform:scale(1.05);}
     #bom-wrap .bom-drag-item.placed{background:rgba(30,100,30,0.9);border-color:#4c4;color:#afffaf;}
     #bom-wrap .bom-drag-item.bad-place{background:rgba(100,20,20,0.9);border-color:#c44;color:#ffafaf;}
-
     #bom-wrap .bom-result-circle{
-        width:70px;height:70px;border-radius:50%;
-        background:rgba(30,100,30,0.85);border:2px solid #4c4;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;
-        margin:0 auto 10px;font-size:10px;color:#afffaf;font-weight:600;
+        width:70px;height:70px;border-radius:50%;background:rgba(30,100,30,0.85);
+        border:2px solid #4c4;display:flex;flex-direction:column;align-items:center;
+        justify-content:center;margin:0 auto 10px;font-size:10px;color:#afffaf;font-weight:600;
     }
     #bom-wrap .bom-result-circle .big{font-size:22px;font-weight:700;}
-
     .bom-shake{animation:bomShake .5s ease-in-out;}
     .bom-pulse{animation:bomPulse 1s infinite;}
     `;
@@ -2188,7 +2165,6 @@ function efectoBombera(vfx) {
             el.textContent='❤️'.repeat(lives)+(lives<3?'🖤'.repeat(3-lives):'');
         });
     }
-
     function showScreen(n){
         currentScreen = n;
         wrap.innerHTML = '';
@@ -2203,7 +2179,6 @@ function efectoBombera(vfx) {
         }
         wrap.scrollTop = 0;
     }
-
     function scorebar(){
         const sb = document.createElement('div');
         sb.className = 'bom-scorebar';
@@ -2266,9 +2241,7 @@ function efectoBombera(vfx) {
         const p = panel();
         const scEl = scene(p,'😱','¡El piso se mueve! ¿Cuál es tu primer instinto?',
             'Estás en la gradería sur, sección 14, fila 30. Las luces parpadean.');
-        // agitar header
         setTimeout(()=>{ scEl.classList.add('bom-shake'); setTimeout(()=>scEl.classList.remove('bom-shake'),600); },200);
-
         const grid = document.createElement('div'); grid.className='bom-btn-grid'; p.appendChild(grid);
         const opts = [
             {t:'🏃 Correr hacia la salida más cercana',ok:false},
@@ -2309,7 +2282,6 @@ function efectoBombera(vfx) {
         const p = panel();
         scene(p,'🚪','El sismo pasó. La gente empieza a moverse. ¿Qué haces?',
             'Hay 80,000 personas. Las luces de emergencia están encendidas. Hay humo en una de las salidas.');
-
         const grid = document.createElement('div'); grid.className='bom-btn-grid'; p.appendChild(grid);
         const opts = [
             {t:'🔥 Salir por la salida más cercana aunque haya humo',ok:false},
@@ -2350,7 +2322,6 @@ function efectoBombera(vfx) {
         const p = panel();
         scene(p,'🏟️','Arrastra las ZONAS SEGURAS al recuadro verde',
             'Selecciona los lugares donde debes refugiarte durante el temblor.');
-
         const zonas = [
             {id:'z1',text:'🏛️ Bajo una columna estructural',safe:true},
             {id:'z2',text:'🪟 Cerca de ventanales de vidrio',safe:false},
@@ -2361,17 +2332,13 @@ function efectoBombera(vfx) {
             {id:'z7',text:'🛤️ Pasillo central alejado de paredes',safe:true},
         ];
         let dropped=[];
-
         const srcLabel = document.createElement('div');
         srcLabel.style.cssText='font-size:clamp(9px,1.8vw,11px);color:rgba(255,255,255,.6);margin-bottom:4px;';
         srcLabel.textContent='Zonas disponibles:'; p.appendChild(srcLabel);
-
         const src = document.createElement('div'); src.className='bom-drag-zone'; src.id='bom-zsrc'; p.appendChild(src);
-
         const tgtLabel = document.createElement('div');
         tgtLabel.style.cssText='font-size:clamp(9px,1.8vw,11px);color:#afffaf;margin:6px 0 4px;';
         tgtLabel.innerHTML='✅ Zonas SEGURAS → soltar aquí:'; p.appendChild(tgtLabel);
-
         const tgt = document.createElement('div'); tgt.className='bom-drag-zone'; tgt.id='bom-ztgt'; p.appendChild(tgt);
         tgt.ondragover=e=>{e.preventDefault();tgt.classList.add('over');};
         tgt.ondragleave=()=>tgt.classList.remove('over');
@@ -2381,7 +2348,6 @@ function efectoBombera(vfx) {
             tgt.appendChild(document.getElementById(id));
             if(!dropped.includes(id))dropped.push(id);
         };
-
         zonas.forEach(z=>{
             const el=document.createElement('div');
             el.className='bom-drag-item'; el.draggable=true; el.id=z.id; el.textContent=z.text;
@@ -2392,7 +2358,6 @@ function efectoBombera(vfx) {
             });
             src.appendChild(el);
         });
-
         const fb = feedback(p,'bom-s3-fb');
         const checkBtn = mainBtn(p,'Verificar →',false,()=>{
             let correct=0,wrong=0;
@@ -2417,7 +2382,6 @@ function efectoBombera(vfx) {
         scorebar();
         const p = panel();
         scene(p,'🧳','Selecciona los 5 artículos ESENCIALES para tu mochila de emergencia','Elige exactamente 5 — los más importantes para sobrevivir.');
-
         const kits = [
             {id:'k1',text:'💧 Agua (1.5L)',ok:true},{id:'k2',text:'🔦 Linterna',ok:true},
             {id:'k3',text:'🩹 Botiquín básico',ok:true},{id:'k4',text:'📻 Radio de baterías',ok:true},
@@ -2426,15 +2390,12 @@ function efectoBombera(vfx) {
             {id:'k9',text:'🪞 Espejo grande',ok:false},
         ];
         let selected=[];
-
         const countEl=document.createElement('div');
         countEl.style.cssText='font-size:clamp(9px,1.8vw,11px);color:rgba(255,255,255,.7);margin-bottom:6px;';
         countEl.innerHTML='Seleccionados: <span id="bom-kitcount">0</span>/5'; p.appendChild(countEl);
-
         const grid=document.createElement('div');
         grid.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:8px;';
         p.appendChild(grid);
-
         kits.forEach(k=>{
             const b=document.createElement('button');
             b.className='bom-choice'; b.id='bom-'+k.id;
@@ -2447,7 +2408,6 @@ function efectoBombera(vfx) {
             };
             grid.appendChild(b);
         });
-
         const fb=feedback(p,'bom-s4-fb');
         const checkBtn=mainBtn(p,'Verificar mochila →',false,()=>{
             if(selected.length!==5){ showFeedback('bom-s4-fb','bad','❌ Debes seleccionar exactamente 5 artículos.'); return; }
@@ -2473,7 +2433,6 @@ function efectoBombera(vfx) {
         const circle=document.createElement('div'); circle.className='bom-result-circle';
         circle.innerHTML=`<span class="big">${score}</span><span>pts</span>`;
         p.appendChild(circle);
-
         const title=document.createElement('div');
         title.style.cssText='font-size:clamp(12px,2.8vw,16px);font-weight:700;color:#afffaf;text-align:center;margin-bottom:6px;';
         const desc=document.createElement('div');
@@ -2482,7 +2441,6 @@ function efectoBombera(vfx) {
         else if(score>=250){ title.textContent='🛡️ Superviviente Intermedia'; desc.textContent='Buenas bases, pero hay cosas por reforzar. ¡Practica el simulacro con tu familia!'; }
         else{ title.textContent='📚 Aprendiz en Emergencias'; desc.textContent='¡Para eso está el juego! Ahora ya sabes qué hacer. ¡Compártelo con alguien más!'; }
         p.appendChild(title); p.appendChild(desc);
-
         const tips=[
             '🔔 Registra la app SASMEX para alertas sísmicas.',
             '🏠 Identifica las zonas seguras de tu hogar y trabajo.',
@@ -2505,8 +2463,6 @@ function efectoBombera(vfx) {
             if (fireInterval)  clearInterval(fireInterval);
             if (fireInterval2) clearInterval(fireInterval2);
             if (bomAudioCtx) { try { bomAudioCtx.close(); } catch(e){} bomAudioCtx = null; }
-            // humo absoluto dentro del vfx se elimina con innerHTML=''
-            // restaurar z-index / filter de nina y bombera
             const gn = document.getElementById('glow-nina');
             const gb = document.getElementById('glow-bombera');
             if(gn){ gn.style.zIndex=''; gn.style.position=''; gn.style.filter=''; }
@@ -2514,8 +2470,9 @@ function efectoBombera(vfx) {
             const kf =document.getElementById('bom-kf');      if(kf)  kf.remove();
             const fkf=document.getElementById('bom-fire-kf'); if(fkf) fkf.remove();
             document.querySelectorAll('style').forEach(s=>{ if(s.textContent.includes('bom-header'))s.remove(); });
-            vfx.innerHTML='';
-            vfx.style.overflow='';
+            vfx.innerHTML       = '';
+            vfx.style.overflow  = '';
+            vfx.style.pointerEvents = '';  // ← devuelve a CSS pointer-events:none
         }
     };
 }
@@ -2525,8 +2482,7 @@ function efectoBombera(vfx) {
 
 
 
-
-function efectoPolicia(vfx) {
+efectoPolicia(vfx) {
     vfx.innerHTML=`<style>
     .np-lb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;position:absolute;inset:0;}
     .np-bar{display:flex;gap:4px;padding:8px;background:rgba(0,0,0,.6);border-radius:8px;border:2px solid #333;backdrop-filter:blur(4px);}
