@@ -2568,6 +2568,222 @@ function efectoBombera(vfx) {
 
 
 // ─── 6. POLICÍA — barra de luces con botones ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+function efectoPolicia(vfx) {
+
+    // ── CAPAS DEL MURAL ────────────────────────────────────────────
+    const NINA_Z = 65;
+    const elNina = document.getElementById('glow-nina');
+    if (elNina) {
+        elNina.style.zIndex    = String(NINA_Z);
+        elNina.style.position  = 'absolute';
+        elNina.style.filter    = 'brightness(1.6) drop-shadow(0 0 20px rgba(255,255,255,1))';
+        elNina.style.animation = 'nina-pulso 1.8s ease-in-out infinite';
+    }
+    const PROF = ['glow-doctora','glow-ingeniera','glow-maestra','glow-bombera','glow-repartidora','glow-futbolista'];
+    PROF.forEach(id => {
+        const el = document.getElementById(id); if (!el) return;
+        el.style.animation = 'none'; el.style.filter = 'brightness(0.7)'; el.style.opacity = '0.7';
+    });
+    const FONDO = ['glow-jugadoras','glow-azteca','glow-historia','glow-nosotras'];
+    FONDO.forEach(id => {
+        const el = document.getElementById(id); if (!el) return;
+        el.style.animation = 'none'; el.style.filter = 'brightness(0.6)'; el.style.opacity = '0.6';
+    });
+
+    // ── WRAPPER ────────────────────────────────────────────────────
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:absolute;inset:0;z-index:60;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,1.5vh,14px);padding:clamp(6px,2vw,16px);box-sizing:border-box;';
+    vfx.appendChild(wrapper);
+
+    wrapper.innerHTML = `<style>
+/* ── Luces barra ── */
+.np-bar{display:flex;gap:clamp(3px,1vw,6px);padding:clamp(5px,1.2vw,10px);
+  background:rgba(0,0,0,.45);border-radius:10px;border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(6px);justify-content:center;width:100%;box-sizing:border-box;}
+.np-l{flex:1;max-width:clamp(28px,7vw,52px);height:clamp(38px,8vh,80px);
+  border-radius:6px;background:#1a1a1a;position:relative;overflow:hidden;transition:background .15s;}
+.np-l .np-i{position:absolute;inset:3px;border-radius:4px;background:rgba(255,255,255,.04);}
+
+.np-l.blue  {animation:npB1 .5s step-end infinite;}
+.np-l.blue2 {animation:npB1 .5s step-end infinite;animation-delay:.25s;}
+.np-l.blue3 {animation:npB1 .5s step-end infinite;animation-delay:.12s;}
+.np-l.red   {animation:npR1 .5s step-end infinite;}
+.np-l.red2  {animation:npR1 .5s step-end infinite;animation-delay:.25s;}
+.np-l.red3  {animation:npR1 .5s step-end infinite;animation-delay:.12s;}
+.np-l.spot  {background:#ffffcc!important;box-shadow:0 0 28px #ffff88,0 0 60px rgba(255,255,180,.4);animation:none;}
+.np-l.off   {background:#1a1a1a!important;box-shadow:none!important;animation:none!important;}
+.np-l.caution  {animation:npC1 .55s step-end infinite;}
+.np-l.caution2 {animation:npC1 .55s step-end infinite;animation-delay:.27s;}
+.np-l.caution3 {animation:npC1 .55s step-end infinite;animation-delay:.14s;}
+.np-l.sos   {animation:npSOS .18s step-end infinite;}
+
+@keyframes npB1{0%,49%{background:#0044ff;box-shadow:0 0 18px #0044ff,0 0 35px rgba(0,68,255,.5);}50%,100%{background:#0a0a22;box-shadow:none;}}
+@keyframes npR1{0%,49%{background:#ff1100;box-shadow:0 0 18px #ff1100,0 0 35px rgba(255,17,0,.5);}50%,100%{background:#220a0a;box-shadow:none;}}
+@keyframes npC1{0%,49%{background:#ffaa00;box-shadow:0 0 18px #ffaa00,0 0 30px rgba(255,170,0,.4);}50%,100%{background:#1a1200;box-shadow:none;}}
+@keyframes npSOS{0%,49%{background:#fff;box-shadow:0 0 28px #fff,0 0 60px rgba(255,255,255,.6);}50%,100%{background:#111;box-shadow:none;}}
+
+/* ── Paneles fondo ── */
+.np-bg{position:absolute;inset:0;display:grid;
+  grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
+  gap:clamp(3px,0.8vw,8px);padding:clamp(3px,0.8vw,8px);
+  pointer-events:none;z-index:0;}
+.np-bp{border-radius:8px;background:transparent;transition:background .15s;}
+.np-bp.blue   {animation:bpB .5s step-end infinite;}
+.np-bp.blue2  {animation:bpB .5s step-end infinite;animation-delay:.25s;}
+.np-bp.blue3  {animation:bpB .5s step-end infinite;animation-delay:.12s;}
+.np-bp.red    {animation:bpR .5s step-end infinite;}
+.np-bp.red2   {animation:bpR .5s step-end infinite;animation-delay:.25s;}
+.np-bp.red3   {animation:bpR .5s step-end infinite;animation-delay:.12s;}
+.np-bp.spot   {animation:bpS .2s step-end infinite;}
+.np-bp.caution  {animation:bpCA .55s step-end infinite;}
+.np-bp.caution2 {animation:bpCA .55s step-end infinite;animation-delay:.27s;}
+.np-bp.caution3 {animation:bpCA .55s step-end infinite;animation-delay:.14s;}
+.np-bp.sos    {animation:bpSOS .18s step-end infinite;}
+.np-bp.off    {background:transparent!important;animation:none!important;}
+
+@keyframes bpB  {0%,49%{background:rgba(0,68,255,.35);}  50%,100%{background:transparent;}}
+@keyframes bpR  {0%,49%{background:rgba(255,17,0,.35);}   50%,100%{background:transparent;}}
+@keyframes bpS  {0%,49%{background:rgba(255,255,200,.4);} 50%,100%{background:transparent;}}
+@keyframes bpCA {0%,49%{background:rgba(255,170,0,.35);}  50%,100%{background:transparent;}}
+@keyframes bpSOS{0%,49%{background:rgba(255,255,255,.45);}50%,100%{background:transparent;}}
+
+/* ── Controles ── */
+.np-ctrl{position:relative;z-index:2;background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.1);border-radius:12px;
+  padding:clamp(7px,1.5vw,12px);backdrop-filter:blur(8px);
+  width:100%;max-width:clamp(260px,90vw,500px);box-sizing:border-box;}
+.np-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(4px,1vw,8px);}
+.np-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);
+  color:#fff;padding:clamp(6px,1.2vh,11px) 2px;border-radius:7px;cursor:pointer;
+  font-size:clamp(.58rem,1.4vw,.75rem);font-weight:600;letter-spacing:.3px;
+  transition:background .15s,border-color .15s;touch-action:manipulation;white-space:nowrap;}
+.np-btn:hover{background:rgba(255,255,255,.16);}
+.np-btn.active{border-color:#00f2ff;color:#00f2ff;background:rgba(0,242,255,.08);}
+.np-btn.sos-on{border-color:#ff3366;color:#ff3366;background:rgba(255,51,102,.12);}
+
+/* ── Slider ── */
+.np-slider-row{display:flex;align-items:center;gap:7px;margin-top:clamp(4px,0.8vh,9px);}
+.np-slider-row label{color:rgba(255,255,255,.6);font-size:clamp(.52rem,1.2vw,.68rem);white-space:nowrap;}
+.np-slider-row input[type=range]{flex:1;accent-color:#00f2ff;cursor:pointer;}
+</style>
+
+<div class="np-bg">
+  <div class="np-bp off" id="nbp1"></div><div class="np-bp off" id="nbp2"></div><div class="np-bp off" id="nbp3"></div>
+  <div class="np-bp off" id="nbp4"></div><div class="np-bp off" id="nbp5"></div><div class="np-bp off" id="nbp6"></div>
+</div>
+
+<div class="np-bar" style="position:relative;z-index:2;max-width:clamp(260px,90vw,500px);">
+  <div class="np-l blue"  id="nl1"><div class="np-i"></div></div>
+  <div class="np-l blue2" id="nl2"><div class="np-i"></div></div>
+  <div class="np-l blue3" id="nl3"><div class="np-i"></div></div>
+  <div class="np-l red"   id="nl4"><div class="np-i"></div></div>
+  <div class="np-l red2"  id="nl5"><div class="np-i"></div></div>
+  <div class="np-l red3"  id="nl6"><div class="np-i"></div></div>
+</div>
+
+<div class="np-ctrl">
+  <div class="np-btns">
+    <button class="np-btn active" id="np1">Secuencia 1</button>
+    <button class="np-btn"        id="np2">Secuencia 2</button>
+    <button class="np-btn"        id="np3">Spotlight</button>
+    <button class="np-btn"        id="np4">Precaución</button>
+    <button class="np-btn"        id="np5">Apagar</button>
+    <button class="np-btn"        id="np6">🆘 SOS</button>
+  </div>
+  <div class="np-slider-row">
+    <label>Brillo exterior</label>
+    <input type="range" id="np-slider" min="0" max="1" step="0.05" value="0.6">
+  </div>
+</div>`;
+
+    // ── HELPERS ────────────────────────────────────────────────────
+    const $ = id => wrapper.querySelector('#' + id);
+
+    function luces(map) {
+        Object.entries(map).forEach(([id, cls]) => { const el=$(id); if(el) el.className='np-l '+cls; });
+    }
+    function fondo(map) {
+        Object.entries(map).forEach(([id, cls]) => { const el=$(id); if(el) el.className='np-bp '+cls; });
+    }
+    function allLuces(cls) { ['nl1','nl2','nl3','nl4','nl5','nl6'].forEach(id=>{ const el=$(id); if(el) el.className='np-l '+cls; }); }
+    function allFondo(cls) { ['nbp1','nbp2','nbp3','nbp4','nbp5','nbp6'].forEach(id=>{ const el=$(id); if(el) el.className='np-bp '+cls; }); }
+    function act(btn) { wrapper.querySelectorAll('.np-btn').forEach(b=>b.classList.remove('active','sos-on')); btn.classList.add('active'); }
+    function apagarTodo() { allLuces('off'); allFondo('off'); sosActivo=false; }
+
+    // ── SOS ────────────────────────────────────────────────────────
+    let sosActivo = false;
+    async function flashSOS(onMs, offMs) {
+        if (!sosActivo) return;
+        allLuces('sos'); allFondo('sos');
+        await new Promise(r=>setTimeout(r,onMs));
+        if (!sosActivo) return;
+        allLuces('off'); allFondo('off');
+        await new Promise(r=>setTimeout(r,offMs));
+    }
+    async function cicloSOS() {
+        while (sosActivo) {
+            await flashSOS(160,100); await flashSOS(160,100); await flashSOS(160,220);
+            await flashSOS(580,160); await flashSOS(580,160); await flashSOS(580,220);
+            await flashSOS(160,100); await flashSOS(160,100); await flashSOS(160,700);
+        }
+    }
+
+    // ── SLIDER ─────────────────────────────────────────────────────
+    const slider = $('np-slider');
+    if (slider) slider.addEventListener('input', function() {
+        wrapper.style.setProperty('--np-bg-alpha', parseFloat(this.value));
+    });
+
+    // ── BOTONES ────────────────────────────────────────────────────
+    const b1=$('np1'); if(b1) b1.onclick=function(){ sosActivo=false; act(this);
+        luces({nl1:'blue',nl2:'blue2',nl3:'blue3',nl4:'red',nl5:'red2',nl6:'red3'});
+        fondo({nbp1:'blue',nbp2:'blue2',nbp3:'blue3',nbp4:'red',nbp5:'red2',nbp6:'red3'}); };
+
+    const b2=$('np2'); if(b2) b2.onclick=function(){ sosActivo=false; act(this);
+        luces({nl1:'blue',nl2:'red2',nl3:'blue3',nl4:'red',nl5:'blue2',nl6:'red3'});
+        fondo({nbp1:'blue',nbp2:'red2',nbp3:'blue3',nbp4:'red',nbp5:'blue2',nbp6:'red3'}); };
+
+    const b3=$('np3'); if(b3) b3.onclick=function(){ sosActivo=false; act(this);
+        luces({nl1:'off',nl2:'off',nl3:'spot',nl4:'spot',nl5:'off',nl6:'off'});
+        fondo({nbp1:'off',nbp2:'off',nbp3:'spot',nbp4:'spot',nbp5:'off',nbp6:'off'}); };
+
+    const b4=$('np4'); if(b4) b4.onclick=function(){ sosActivo=false; act(this);
+        luces({nl1:'caution',nl2:'caution3',nl3:'caution2',nl4:'caution2',nl5:'caution',nl6:'caution3'});
+        fondo({nbp1:'caution',nbp2:'caution3',nbp3:'caution2',nbp4:'caution2',nbp5:'caution',nbp6:'caution3'}); };
+
+    const b5=$('np5'); if(b5) b5.onclick=function(){ act(this); apagarTodo(); };
+
+    const b6=$('np6'); if(b6) b6.onclick=function(){
+        sosActivo=!sosActivo;
+        if (sosActivo) {
+            wrapper.querySelectorAll('.np-btn').forEach(b=>b.classList.remove('active','sos-on'));
+            this.classList.add('sos-on'); cicloSOS();
+        } else { act(this); apagarTodo(); this.classList.remove('sos-on'); }
+    };
+
+    if (b1) b1.click();
+
+    return {
+        cleanup: () => {
+            sosActivo = false;
+            [...PROF, ...FONDO].forEach(id => {
+                const el=document.getElementById(id); if(!el) return;
+                el.style.animation=''; el.style.filter=''; el.style.opacity='';
+            });
+            if (elNina) { elNina.style.zIndex=''; elNina.style.position=''; elNina.style.filter=''; elNina.style.animation=''; }
+            wrapper.remove();
+        }
+    };
+}
+
+
+
+
+
+
+
+
+
 
 
 // ─── 7. MAESTRA — tabla periódica con palabras en espacios vacios ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
