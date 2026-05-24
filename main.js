@@ -1799,41 +1799,7 @@ function efectoArquitecta(vfx) {
 }
 
 
-
-
-// ─── 5. BOMBERA — Juego Sismo en el Azteca ──────────────────────
-
-// ─── 5. BOMBERA — partículas + indicador "Desliza tu dedo" ──────
-function efectoBombera(vfx) {
-    // Indicador de deslizar
-    const hint = document.createElement('div');
-    hint.style.cssText='position:absolute;bottom:12%;left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;animation:nvFloat 2s ease-in-out infinite alternate;';
-    hint.innerHTML=`<span style="font-size:1.8rem;">👆</span><span style="color:#fff;font-family:sans-serif;font-size:.65rem;background:rgba(0,0,0,.5);padding:3px 8px;border-radius:8px;white-space:nowrap;">Desliza tu dedo</span>`;
-    vfx.appendChild(hint);
-
-    const canvas=document.createElement('canvas');
-    canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:auto;';
-    canvas.width=vfx.offsetWidth;canvas.height=vfx.offsetHeight;vfx.appendChild(canvas);
-    const ctx=canvas.getContext('2d');let particles=[],raf;const mouse={x:null,y:null};
-    class Particle{constructor(){this.x=mouse.x;this.y=mouse.y;this.size=Math.random()*8+2;this.dx=(Math.random()-.5)*5;this.dy=(Math.random()-.5)*5;const cols=['#ff4400','#ff8800','#ffcc00','#ff2200','#ffeeaa'];this.color=cols[Math.floor(Math.random()*cols.length)];this.opacity=1;}
-    update(){this.x+=this.dx;this.y+=this.dy;if(this.opacity>0.02)this.opacity-=0.022;}
-    draw(){ctx.globalAlpha=this.opacity;ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(this.x,this.y,this.size,0,Math.PI*2);ctx.fill();}}
-    function move(cx,cy){
-        mouse.x=cx;mouse.y=cy;
-        for(let i=0;i<6;i++)particles.push(new Particle());
-        // Hide hint on first interaction
-        hint.style.opacity='0';
-    }
-    canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();move(e.clientX-r.left,e.clientY-r.top);});
-    canvas.addEventListener('touchmove',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();move(e.touches[0].clientX-r.left,e.touches[0].clientY-r.top);},{passive:false});
-    function loop(){ctx.fillStyle='rgba(5,5,5,0.12)';ctx.fillRect(0,0,canvas.width,canvas.height);for(let i=particles.length-1;i>=0;i--){particles[i].update();particles[i].draw();if(particles[i].opacity<=0.03)particles.splice(i,1);}ctx.globalAlpha=1;raf=requestAnimationFrame(loop);}loop();
-    return {cleanup:()=>{cancelAnimationFrame(raf);canvas.remove();hint.remove();}};
-}
-
-
 // ─── 6. POLICÍA — barra de luces con botones ────────────────────
-
-
 
 efectoPolicia(vfx) {
     vfx.innerHTML=`<style>
