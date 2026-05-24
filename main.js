@@ -687,8 +687,10 @@ function efectoFutbolista(vfx) {
 }
 
 
+// ==========================================
+// ─── 2. ASTRONAUTA — SISTEMA SOLAR 3D CON CAMPO DE ESTRELLAS PROFUNDO──────
+// ==========================================
 
-// ─── 2. ASTRONAUTA — sistema solar 3D con campo de estrellas profundo ──────
 function efectoAstronauta(vfx) {
     // ── CAPAS AL FRENTE (Esto es lo que agregaste y está bien) ──
     const elNina = document.getElementById('glow-nina');
@@ -709,23 +711,23 @@ function efectoAstronauta(vfx) {
         {n:"Urano",                 img:"assets/urano.jpg",      fb:"https://s3-us-west-2.amazonaws.com/s.cdpn.io/332937/uranus2.jpg",  g:.92,  s:"20s", tilt:"97.8°",  day:"17.2 h",  year:"30,589 días", d:"El gigante helado que rota de lado, inclinación de 98°. Sus vientos alcanzan 900 km/h."},
         {n:"Neptuno",               img:"assets/neptuno.jpg",    fb:"https://s3-us-west-2.amazonaws.com/s.cdpn.io/332937/neptune.jpg",  g:1.19, s:"16s", tilt:"28.3°",  day:"16.1 h",  year:"59,800 días", d:"El más lejano y ventoso. Tormentas de 2,100 km/h. Un azul profundo de metano helado."},
         {n:"Plutón",                img:"assets/pluton.jpg",     fb:"https://s3-us-west-2.amazonaws.com/s.cdpn.io/332937/pluto.jpg",    g:.063, s:"35s", tilt:"122.5°", day:"153.3 h", year:"90,560 días", d:"El planeta enano al borde del sistema solar. En 2006 perdió su título de planeta oficial."},
-        {n:"Balón", isFootball:true, img:"assets/centro-balon-loader.png", fb:"", g:null, s:null, tilt:"—", day:"—", year:"—", d:"El planeta más popular de la Tierra. Redondo, blanco y negro, viaja a 120 km/h al patear. Once contra once."}
+        {n:"Balón", isFootball:true, img:"assets/balon-tierra.png", fb:"", g:null, s:null, tilt:"—", day:"—", year:"—", d:"El planeta más popular de la Tierra. Redondo, blanco y negro, viaja a 120 km/h al patear. Once contra once."}
     ];
     var cur=0, isSpeaking=false;
-
+ 
     // ── OCULTAR PROFESIONISTAS COMPLETAMENTE (solo nina-2 visible) ──
     var _profOcultas = ['glow-doctora','glow-ingeniera','glow-maestra','glow-bombera','glow-repartidora','glow-futbolista'];
     _profOcultas.forEach(function(id){
         var el=document.getElementById(id);
         if(el){el.style.transition='opacity 0.4s ease';el.style.opacity='0';}
     });
-
+ 
     // ── CONTENEDOR ─────────────────────────────────────────────────
     vfx.innerHTML='';
     vfx.style.pointerEvents='auto';
     // Fondo negro sólido para el modo astronauta (campo de estrellas 3D real)
     vfx.style.background='#000010';
-
+ 
     // ── KEYFRAMES (una sola vez) ─────────────────────────────────
     if(!document.getElementById('as2-kf')){
         var sk=document.createElement('style');sk.id='as2-kf';
@@ -738,15 +740,15 @@ function efectoAstronauta(vfx) {
         `;
         document.head.appendChild(sk);
     }
-
+ 
     // ── WRAP PRINCIPAL ──────────────────────────────────────────
     var wrap=document.createElement('div');
     wrap.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(2px,0.8vh,7px);overflow:hidden;';
-
+ 
     wrap.innerHTML=`
     <!-- ★ CANVAS CAMPO DE ESTRELLAS 3D ★ -->
     <canvas id="as2-stars" style="position:absolute;inset:0;pointer-events:none;z-index:0;"></canvas>
-
+ 
     <!-- Botón TTS -->
     <button id="as2-tts" title="Leer descripción" style="position:absolute;top:clamp(6px,2%,12px);left:clamp(6px,2%,12px);z-index:20;
         width:clamp(26px,5.5vw,38px);height:clamp(26px,5.5vw,38px);border-radius:50%;
@@ -760,11 +762,11 @@ function efectoAstronauta(vfx) {
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
         </svg>
     </button>
-
+ 
     <!-- Dots indicadores -->
     <div id="as2-dots" style="display:flex;gap:clamp(3px,1vw,6px);flex-wrap:wrap;justify-content:center;
         max-width:min(320px,88vw);z-index:3;position:relative;padding:0 6px;"></div>
-
+ 
     <!-- Row: prev · planeta · next -->
     <div style="display:flex;align-items:center;justify-content:center;gap:clamp(8px,2.5vw,20px);position:relative;z-index:3;">
         <button id="as2-prev" style="width:clamp(30px,7.5vw,44px);height:clamp(30px,7.5vw,44px);border-radius:50%;
@@ -772,7 +774,7 @@ function efectoAstronauta(vfx) {
             display:flex;align-items:center;justify-content:center;touch-action:manipulation;transition:background .2s;backdrop-filter:blur(4px);">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:15px;height:15px;"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
-
+ 
         <!-- Planeta 3D con órbita de referencia -->
         <div id="as2-pw" style="position:relative;flex-shrink:0;width:clamp(90px,22vw,155px);height:clamp(90px,22vw,155px);">
             <!-- Elipse de órbita de fondo (decorativa) -->
@@ -787,12 +789,12 @@ function efectoAstronauta(vfx) {
                 animation:as2Spin 12s linear infinite;
                 box-shadow:inset -25px -12px 45px rgba(0,0,0,.85),inset 8px 6px 18px rgba(255,255,255,.08);
                 position:relative;z-index:1;"></div>
-            <!-- Balón (planeta fútbol) -->
+            <!-- Balón (planeta fútbol) — misma técnica de background deslizante que los planetas -->
             <div id="as2-fw" style="width:100%;height:100%;border-radius:50%;display:none;
-                align-items:center;justify-content:center;position:absolute;inset:0;z-index:1;">
-                <img id="as2-fimg" src="assets/centro-balon-loader.png"
-                    style="width:88%;height:88%;object-fit:contain;animation:as2Spin 2.5s linear infinite;transform-origin:center;border-radius:50%;">
-            </div>
+                position:absolute;inset:0;z-index:1;
+                background-size:200% 100%;background-repeat:repeat-x;
+                animation:as2Spin 2.2s linear infinite;
+                box-shadow:inset -25px -12px 45px rgba(0,0,0,.75),inset 8px 6px 18px rgba(255,255,255,.15),0 0 22px 4px rgba(255,255,255,.12);"></div>
             <!-- Anillo Saturno 3D -->
             <div id="as2-rw" style="position:absolute;top:50%;left:50%;width:170%;height:38%;
                 transform:translate(-50%,-50%) rotateX(74deg);opacity:0;transition:.35s;pointer-events:none;z-index:2;">
@@ -802,14 +804,14 @@ function efectoAstronauta(vfx) {
                     animation:as2Ring 22s linear infinite;"></div>
             </div>
         </div>
-
+ 
         <button id="as2-next" style="width:clamp(30px,7.5vw,44px);height:clamp(30px,7.5vw,44px);border-radius:50%;
             border:1.5px solid rgba(255,255,255,.4);background:rgba(0,0,0,.55);color:#fff;cursor:pointer;
             display:flex;align-items:center;justify-content:center;touch-action:manipulation;transition:background .2s;backdrop-filter:blur(4px);">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:15px;height:15px;"><path d="M9 18l6-6-6-6"/></svg>
         </button>
     </div>
-
+ 
     <!-- ★ INFO con RECUADRO / BACKDROP para legibilidad ★ -->
     <div id="as2-info" style="text-align:center;z-index:3;position:relative;
         padding:clamp(6px,1.2vh,10px) clamp(10px,3vw,18px);
@@ -828,7 +830,7 @@ function efectoAstronauta(vfx) {
             font-size:clamp(.48rem,1.5vw,.62rem);opacity:.8;font-family:Arial,sans-serif;
             color:#b0c8ff;flex-wrap:wrap;"></div>
     </div>
-
+ 
     <!-- Calculadora de peso -->
     <div style="background:rgba(0,0,20,.75);border:1px solid rgba(255,255,255,.18);
         padding:clamp(4px,1vh,8px) clamp(8px,2.5vw,14px);border-radius:12px;
@@ -842,21 +844,21 @@ function efectoAstronauta(vfx) {
             font-size:clamp(.62rem,1.9vw,.73rem);margin:0 auto;display:block;">
         <div id="as2-res" style="margin-top:4px;font-size:clamp(.62rem,1.9vw,.73rem);font-weight:700;color:#9fd4ff;min-height:15px;"></div>
     </div>`;
-
+ 
     vfx.appendChild(wrap);
-
+ 
     // ── CAMPO DE ESTRELLAS 3D CON PROFUNDIDAD REAL ──────────────
     var cv = document.getElementById('as2-stars');
     var sctx = cv.getContext('2d');
     var stars = [];
     var raf2;
-
+ 
     function rsz() {
         cv.width  = wrap.clientWidth  || wrap.offsetWidth  || 800;
         cv.height = wrap.clientHeight || wrap.offsetHeight || 300;
         initStars();
     }
-
+ 
     function initStars() {
         var W2 = cv.width, H2 = cv.height;
         var num = W2 < 600 ? 140 : 220;
@@ -870,14 +872,14 @@ function efectoAstronauta(vfx) {
             });
         }
     }
-
+ 
     function animateStars() {
         var W2 = cv.width, H2 = cv.height;
         var cx = W2 / 2, cy = H2 / 2;
         // Rastro suave — da el efecto de velocidad
         sctx.fillStyle = 'rgba(0,0,10,0.22)';
         sctx.fillRect(0, 0, W2, H2);
-
+ 
         for (var i = 0; i < stars.length; i++) {
             var s = stars[i];
             s.z -= 1.8;
@@ -901,13 +903,17 @@ function efectoAstronauta(vfx) {
             sctx.arc(px, py, r, 0, Math.PI * 2);
             sctx.fill();
         }
+        // Throttle 24fps
+        const _t2 = performance.now();
+        if (_t2 - (animateStars._last||0) < 42) { raf2=requestAnimationFrame(animateStars); return; }
+        animateStars._last = _t2;
         raf2 = requestAnimationFrame(animateStars);
     }
 
     rsz();
     window.addEventListener('resize', rsz);
     animateStars();
-
+ 
     // ── DOTS ───────────────────────────────────────────────────
     var dotsEl = document.getElementById('as2-dots');
     P.forEach(function(_, i) {
@@ -916,7 +922,7 @@ function efectoAstronauta(vfx) {
         d.addEventListener('click', function() { go(i); });
         dotsEl.appendChild(d);
     });
-
+ 
     // ── TTS ────────────────────────────────────────────────────
     function speak(text) {
         if (!('speechSynthesis' in window)) return;
@@ -935,7 +941,7 @@ function efectoAstronauta(vfx) {
         if (isSpeaking) { window.speechSynthesis.cancel(); isSpeaking=false; this.style.background=''; }
         else { speak(P[cur].n + '. ' + P[cur].d); }
     });
-
+ 
     // ── CALCULADORA DE PESO ────────────────────────────────────
     function wt() {
         var v   = parseFloat(document.getElementById('as2-kg').value) || 0;
@@ -951,7 +957,7 @@ function efectoAstronauta(vfx) {
         }
     }
     var kgEl = document.getElementById('as2-kg'); if (kgEl) kgEl.oninput = wt;
-
+ 
     // ── HELPER: cargar textura con fallback ───────────────────
     function resolveImg(p, callback) {
         var img1 = new Image();
@@ -962,7 +968,7 @@ function efectoAstronauta(vfx) {
         };
         img1.src = p.img;
     }
-
+ 
     // ── RENDER PLANETA ─────────────────────────────────────────
     function renderPlanet(i, texUrl) {
         var p  = P[i];
@@ -970,9 +976,20 @@ function efectoAstronauta(vfx) {
         var fw = document.getElementById('as2-fw');
         var rw = document.getElementById('as2-rw');
         if (!pl) return;
-
+ 
         if (p.isFootball) {
-            pl.style.display = 'none'; fw.style.display = 'flex';
+            // Balón: misma técnica esférica que los planetas
+            pl.style.display = 'none';
+            fw.style.display = 'block';
+            fw.style.backgroundImage    = 'url(assets/balon-tierra.png)';
+            fw.style.backgroundSize     = '200% 100%';
+            fw.style.backgroundRepeat   = 'repeat-x';
+            fw.style.animationName      = 'as2Spin';
+            fw.style.animationDuration  = '16s';
+            fw.style.animationTimingFunction = 'linear';
+            fw.style.animationIterationCount = 'infinite';
+            fw.style.boxShadow = 'inset -35px -15px 60px rgba(0,0,0,.9),inset 12px 10px 30px rgba(255,255,255,.25),inset 0px -8px 20px rgba(0,0,0,.6),0 0 30px 6px rgba(255,255,255,.08)';
+            fw.style.overflow = 'hidden';
         } else {
             pl.style.display = '';  fw.style.display = 'none';
             pl.style.backgroundImage  = 'url(' + texUrl + ')';
@@ -992,7 +1009,7 @@ function efectoAstronauta(vfx) {
         }
         // Saturno ring
         rw.style.opacity = p.ring ? '1' : '0';
-
+ 
         // Info panel con animación de entrada
         var info = document.getElementById('as2-info');
         info.style.animation = 'none'; void info.offsetWidth; info.style.animation = 'as2FadeUp .4s ease';
@@ -1002,7 +1019,7 @@ function efectoAstronauta(vfx) {
         if (!p.isFootball) {
             st.innerHTML = '<span>Inclinación<br><b>'+p.tilt+'</b></span><span>Día<br><b>'+p.day+'</b></span><span>Año<br><b>'+p.year+'</b></span>';
         } else { st.innerHTML=''; }
-
+ 
         dotsEl.querySelectorAll('div').forEach(function(d, j) {
             d.style.background = j===i ? '#fff' : 'rgba(255,255,255,.28)';
             d.style.boxShadow  = j===i ? '0 0 7px #fff' : '';
@@ -1010,25 +1027,25 @@ function efectoAstronauta(vfx) {
         wt();
         setTimeout(function() { speak(p.n + '. ' + p.d); }, 300);
     }
-
+ 
     function go(i) {
         cur = (i + P.length) % P.length;
         resolveImg(P[cur], function(url) { renderPlanet(cur, url); });
     }
-
+ 
     var prevBtn = document.getElementById('as2-prev');
     var nextBtn = document.getElementById('as2-next');
     if (prevBtn) prevBtn.addEventListener('click', function() { go(cur-1); });
     if (nextBtn) nextBtn.addEventListener('click', function() { go(cur+1); });
-
+ 
     // Swipe táctil
     var tx2 = 0;
     wrap.addEventListener('touchstart', function(e) { tx2=e.touches[0].clientX; }, {passive:true});
     wrap.addEventListener('touchend',   function(e) { var dx=e.changedTouches[0].clientX-tx2; if(Math.abs(dx)>40) go(cur+(dx<0?1:-1)); }, {passive:true});
-
+ 
     // Inicio
     resolveImg(P[0], function(url) { renderPlanet(0, url); });
-
+ 
     return { cleanup: function() {
         cancelAnimationFrame(raf2); raf2=null;
         window.removeEventListener('resize', rsz);
@@ -1042,6 +1059,17 @@ function efectoAstronauta(vfx) {
         vfx.innerHTML='';
     }};
 }
+
+
+
+// ==========================================
+// FUNCION 3 DOCTORA 
+// ==========================================
+
+
+
+
+
 
 function efectoDoctora(vfx) {
     const cont=document.createElement('div');
