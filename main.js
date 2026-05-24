@@ -1802,12 +1802,13 @@ function efectoArquitecta(vfx) {
 
 
 
-// ─── 5. BOMBERA — partículas + indicador "Desliza tu dedo" ──────
-
-
-
 
 // ─── 5. BOMBERA — Juego Sismo en el Azteca ──────────────────────
+
+
+
+
+
 function efectoBombera(vfx) {
     // ── KEYFRAMES (una sola vez) ──────────────────────────────────
     if (!document.getElementById('bom-kf')) {
