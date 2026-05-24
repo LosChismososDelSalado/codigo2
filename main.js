@@ -11,19 +11,19 @@ const zonaData = {
             {
                 src:       'assets/jugadora-1.webm',
                 titulo:    'Nombre Jugadora 1',
-                subtitulo: 'Posición · Años activa',
+                subtitulo: 'Posición · Luchadoras',
                 thumb:     'assets/jugadora-1-thumb.jpg'
             },
             {
                 src:       'assets/jugadora-2.webm',
                 titulo:    'Nombre Jugadora 2',
-                subtitulo: 'Posición · Años activa',
+                subtitulo: 'Posición · Guerreras',
                 thumb:     'assets/jugadora-2-thumb.jpg'
             },
             {
                 src:       'assets/jugadora-3.webm',
                 titulo:    'Nombre Jugadora 3',
-                subtitulo: 'Posición · Años activa',
+                subtitulo: 'Posición · Empoderadas',
                 thumb:     'assets/jugadora-3-thumb.jpg'
             },
         ]
