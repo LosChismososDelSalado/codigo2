@@ -1128,6 +1128,532 @@ function efectoAstronauta(vfx) {
 
 
 // ─── 3. MAESTRA  ──────────────────────────────────────────────────────────────────────────────────────────────────────
+function efectoDoctora(vfx) {
+    const DOCTORA_Z_INDEX = 65;
+    const elDoctora = document.getElementById('glow-doctora');
+    const elNina    = document.getElementById('glow-nina');
+    if (elDoctora) {
+        elDoctora.style.zIndex   = String(DOCTORA_Z_INDEX);
+        elDoctora.style.position = 'absolute';
+        elDoctora.style.filter   = 'brightness(0.55)';
+        elDoctora.style.animation= 'none';
+    }
+    if (elNina) {
+        elNina.style.zIndex    = String(DOCTORA_Z_INDEX + 1);
+        elNina.style.position  = 'absolute';
+        elNina.style.filter    = 'brightness(1.6) drop-shadow(0 0 20px rgba(255,255,255,1))';
+        elNina.style.animation = 'nina-pulso 1.8s ease-in-out infinite';
+    }
+
+    // ── AUDIO: burbuja ─────────────────────────────────────────────
+    let drAudioCtx = null;
+    function playBubble() {
+        try {
+            if (!drAudioCtx) drAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (drAudioCtx.state === 'suspended') drAudioCtx.resume();
+            const ctx = drAudioCtx, now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gn  = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, now);
+            osc.frequency.exponentialRampToValueAtTime(140, now + 0.18);
+            gn.gain.setValueAtTime(0.22, now);
+            gn.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+            osc.connect(gn).connect(ctx.destination);
+            osc.start(now); osc.stop(now + 0.25);
+        } catch(e) {}
+    }
+
+    // ── CONTENEDOR RAÍZ ────────────────────────────────────────────
+    const cont = document.createElement('div');
+    cont.style.cssText = 'position:absolute;inset:0;overflow:hidden;font-family:sans-serif;';
+    vfx.appendChild(cont);
+
+    // ── FONDO CUADRÍCULA MÉDICA ────────────────────────────────────
+    const grid = document.createElement('div');
+    grid.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:0;'
+        + 'background-image:linear-gradient(rgba(255,0,0,.06) 1px,transparent 1px),'
+        + 'linear-gradient(90deg,rgba(255,0,0,.06) 1px,transparent 1px);'
+        + 'background-size:44px 44px;';
+    cont.appendChild(grid);
+
+    // ── VIRUS FLOTANTES (fuera de la caja, en el fondo del vfx) ───
+    const virusLayer = document.createElement('div');
+    virusLayer.style.cssText = 'position:absolute;inset:0;z-index:1;pointer-events:auto;overflow:hidden;';
+    cont.appendChild(virusLayer);
+
+    const EM = ['🦠','🧫','💊','🩺','❤️‍🩹'];
+    const viruses = [];
+    let vafRaf;
+
+    class Virus {
+        constructor(x, y, size, small = false) {
+            this.x=x; this.y=y; this.size=size; this.small=small;
+            const sp = small ? 2.8 : 1.1;
+            this.dx=(Math.random()-.5)*sp*2; this.dy=(Math.random()-.5)*sp*2;
+            this.el=document.createElement('div');
+            this.el.textContent=EM[Math.floor(Math.random()*EM.length)];
+            this.el.style.cssText=`position:absolute;font-size:${size}px;cursor:pointer;`
+                +`user-select:none;touch-action:manipulation;`
+                +`filter:drop-shadow(0 0 5px #ff0044);z-index:1;`;
+            virusLayer.appendChild(this.el);
+            if (!small) {
+                const explode = () => { this.explotar(); playBubble(); };
+                this.el.addEventListener('click', explode);
+                this.el.addEventListener('touchstart', e=>{ e.preventDefault(); explode(); },{passive:false});
+            }
+        }
+        explotar() {
+            // sólo 3 pequeños para no sobrecargar móvil
+            for(let i=0;i<3;i++) viruses.push(new Virus(this.x,this.y,this.size*.4,true));
+            this.el.remove();
+            const idx=viruses.indexOf(this); if(idx>-1) viruses.splice(idx,1);
+        }
+        update(w,h) {
+            this.x+=this.dx; this.y+=this.dy;
+            if(this.x<0||this.x>w-this.size) this.dx*=-1;
+            if(this.y<0||this.y>h-this.size) this.dy*=-1;
+            this.el.style.left=this.x+'px'; this.el.style.top=this.y+'px';
+            // si es pequeño y sale del área de la caja RCP, desaparece
+            if(this.small){
+                this.ttl=(this.ttl||0)+1;
+                if(this.ttl>90){ this.el.remove(); viruses.splice(viruses.indexOf(this),1); }
+            }
+        }
+    }
+
+    function spawnViruses() {
+        const vw=vfx.offsetWidth, vh=vfx.offsetHeight;
+        // solo en la mitad derecha (fuera del área del juego)
+        const count = window.innerWidth < 500 ? 4 : 6;
+        for(let i=0;i<count;i++){
+            const x=vw*0.55+Math.random()*vw*0.4;
+            const y=Math.random()*(vh-60);
+            viruses.push(new Virus(x,y,28+Math.random()*16));
+        }
+    }
+
+    function virusLoop() {
+        const vw=vfx.offsetWidth, vh=vfx.offsetHeight;
+        // clonar para iterar (explotar modifica el array)
+        [...viruses].forEach(v=>v.update(vw,vh));
+        // mantener al menos 3 virus grandes
+        const big=viruses.filter(v=>!v.small);
+        if(big.length<3){
+            const vw2=vfx.offsetWidth, vh2=vfx.offsetHeight;
+            const x=vw2*0.58+Math.random()*vw2*0.38;
+            const y=Math.random()*(vh2-60);
+            viruses.push(new Virus(x,y,28+Math.random()*14));
+        }
+        vafRaf=requestAnimationFrame(virusLoop);
+    }
+
+    spawnViruses();
+    vafRaf=requestAnimationFrame(virusLoop);
+
+    // ── EKG SVG: recorre el vfx y "termina en el pecho de la nina" ─
+    // El path sale de la izquierda, cruza el mural y sale por el borde derecho
+    // hacia donde está la nina (esquina derecha del vfx)
+    const ekgSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    ekgSvg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible;';
+    // Path adaptable: empieza en izquierda, hace la onda EKG en el centro, termina en el borde derecho a media altura (pecho de nina)
+    ekgSvg.innerHTML=`<defs>
+      <filter id="drGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <linearGradient id="drGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style="stop-color:#ff0044;stop-opacity:0.2"/>
+        <stop offset="60%" style="stop-color:#ff0044;stop-opacity:1"/>
+        <stop offset="100%" style="stop-color:#ff6688;stop-opacity:0.5"/>
+      </linearGradient>
+    </defs>
+    <path id="dr-ekg-path" fill="none" stroke="url(#drGrad)" stroke-width="3"
+      stroke-linecap="round" filter="url(#drGlow)"
+      stroke-dasharray="900" stroke-dashoffset="900"
+      d="M0,55% L18%,55% L22%,55% L25%,42% L28%,72% L30%,18% L32%,80% L34%,60% L36%,55% L42%,55% L100%,38%">
+      <animate attributeName="stroke-dashoffset" from="900" to="0" dur="2.2s" repeatCount="indefinite"/>
+    </path>`;
+    cont.appendChild(ekgSvg);
+
+    // Ajustar el path al tamaño real del vfx con porcentajes → coordenadas px
+    function recalcEkg() {
+        const vw=vfx.offsetWidth, vh=vfx.offsetHeight;
+        const cy=Math.round(vh*0.52), chest=Math.round(vh*0.36);
+        const path=ekgSvg.querySelector('#dr-ekg-path');
+        if(!path) return;
+        const d=[
+            `M0,${cy}`,
+            `L${Math.round(vw*.18)},${cy}`,
+            `L${Math.round(vw*.22)},${cy}`,
+            `L${Math.round(vw*.25)},${Math.round(vh*.38)}`,
+            `L${Math.round(vw*.28)},${Math.round(vh*.72)}`,
+            `L${Math.round(vw*.30)},${Math.round(vh*.14)}`,
+            `L${Math.round(vw*.32)},${Math.round(vh*.82)}`,
+            `L${Math.round(vw*.35)},${Math.round(vh*.58)}`,
+            `L${Math.round(vw*.38)},${cy}`,
+            `L${Math.round(vw*.46)},${cy}`,
+            `L${vw},${chest}`,  // termina en el borde derecho a la altura del pecho de la nina
+        ].join(' ');
+        path.setAttribute('d',d);
+    }
+    recalcEkg();
+    window.addEventListener('resize', recalcEkg);
+
+    // ── CAJA DEL JUEGO RCP (izquierda, ~52% de ancho) ─────────────
+    const wrapper = document.createElement('div');
+    // En vertical ocupa más ancho, en horizontal queda a la izquierda
+    const isMobile = window.innerWidth < 600;
+    wrapper.style.cssText = `position:absolute;top:0;left:0;bottom:0;`
+        + `width:${isMobile?'100%':'52%'};`
+        + `z-index:10;overflow:hidden;`;
+    cont.appendChild(wrapper);
+
+    wrapper.innerHTML = `
+<style>
+.rcp-root{position:absolute;inset:0;font-family:sans-serif;
+  background:radial-gradient(ellipse at 50% 110%,rgba(46,204,113,.12) 0%,transparent 55%),
+    repeating-linear-gradient(0deg,transparent,transparent 34px,rgba(255,255,255,.03) 34px,rgba(255,255,255,.03) 35px),
+    repeating-linear-gradient(90deg,#163024 0px,#163024 38px,#1a3a2a 38px,#1a3a2a 76px);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  overflow:hidden;user-select:none;touch-action:manipulation;}
+.rcp-screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.84);backdrop-filter:blur(8px);z-index:50;padding:10px 12px;text-align:center;overflow-y:auto;}
+.rcp-hidden{display:none!important;}
+.rcp-title{font-size:clamp(1.1rem,4.5vw,2rem);font-weight:900;color:#fff;letter-spacing:1px;line-height:1.1;margin-bottom:4px;text-transform:uppercase;}
+.rcp-sub{font-size:clamp(.62rem,2vw,.82rem);color:rgba(255,255,255,.75);margin:4px 0 10px;max-width:300px;line-height:1.4;}
+.rcp-ibox{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);border-radius:10px;
+  padding:8px 11px;max-width:300px;margin-bottom:10px;text-align:left;width:100%;}
+.rcp-ibox h3{font-size:.72rem;font-weight:900;color:#f1c40f;letter-spacing:1px;margin-bottom:6px;text-transform:uppercase;}
+.rcp-ibox li{font-size:.68rem;color:rgba(255,255,255,.85);padding:3px 0;border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;gap:6px;list-style:none;}
+.rcp-ibox li:last-child{border-bottom:none;}
+.rcp-btn{background:#27ae60;color:#fff;border:2px solid #fff;padding:8px 20px;font-weight:900;
+  font-size:clamp(.78rem,2.5vw,1rem);letter-spacing:1px;border-radius:40px;cursor:pointer;
+  box-shadow:0 3px 12px rgba(0,0,0,.5);transition:transform .1s;text-transform:uppercase;margin-top:4px;}
+.rcp-btn:active{transform:scale(.95);}
+.rcp-btn.rcp-red{background:#e74c3c;}
+.rcp-cd-num{font-size:clamp(4rem,18vw,8rem);font-weight:900;color:#fff;
+  text-shadow:0 0 50px rgba(255,255,255,.5);animation:rcpBlast .9s ease forwards;}
+@keyframes rcpBlast{0%{transform:scale(2.2);opacity:0;}60%{transform:scale(.92);opacity:1;}100%{transform:scale(1);opacity:1;}}
+.rcp-hud{position:absolute;top:5px;left:50%;transform:translateX(-50%);width:93%;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(0,0,0,.85);border:1px solid rgba(255,255,255,.15);border-radius:24px;
+  padding:4px 12px;z-index:30;color:#fff;}
+.rcp-lives{font-size:.82rem;letter-spacing:2px;}
+.rcp-score{font-weight:900;font-size:.65rem;letter-spacing:1px;color:#f1c40f;}
+.rcp-bpm{font-weight:900;font-size:.7rem;letter-spacing:1px;}
+.rcp-rl{position:absolute;top:42px;left:50%;transform:translateX(-50%);
+  font-weight:900;font-size:clamp(.8rem,3.2vw,1.2rem);letter-spacing:1px;
+  background:rgba(0,0,0,.85);color:#fff;border:2px solid #f1c40f;
+  padding:2px 12px;border-radius:8px;z-index:30;pointer-events:none;display:none;white-space:nowrap;}
+.rcp-hz{position:absolute;bottom:21%;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:4px;z-index:20;pointer-events:none;}
+.rcp-heart{font-size:clamp(2rem,7vw,3.2rem);filter:drop-shadow(0 0 12px rgba(231,76,60,.9));transition:transform .08s;}
+.rcp-heart.beat{transform:scale(1.4);filter:drop-shadow(0 0 22px rgba(231,76,60,1));}
+.rcp-ecg{width:clamp(120px,46vw,240px);height:38px;border-radius:5px;background:rgba(0,0,0,.7);border:1px solid rgba(46,204,113,.4);}
+.rcp-patient{position:absolute;bottom:28%;left:50%;transform:translateX(-50%);z-index:18;pointer-events:none;}
+.rcp-svg{width:clamp(50px,14vw,90px);height:auto;transition:transform .08s;transform-origin:center bottom;}
+.rcp-svg.rcp-compress{transform:scaleY(.91) translateY(4px);}
+.rcp-bar-wrap{position:absolute;bottom:14%;left:50%;transform:translateX(-50%);
+  width:clamp(130px,50vw,250px);z-index:30;pointer-events:none;}
+.rcp-bar-bg{width:100%;height:11px;background:rgba(255,255,255,.15);border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,.2);}
+.rcp-bar-fill{height:100%;background:linear-gradient(90deg,#2ecc71,#f1c40f);border-radius:6px;width:0%;transition:width .06s linear;}
+.rcp-bar-hint{font-size:.6rem;color:rgba(255,255,255,.6);text-align:center;margin-top:3px;font-weight:600;letter-spacing:.4px;}
+.rcp-ball{position:absolute;bottom:2%;left:50%;transform:translateX(-50%);
+  width:clamp(56px,14vw,90px);height:clamp(56px,14vw,90px);border-radius:50%;cursor:pointer;z-index:35;
+  border:3px solid rgba(255,255,255,.6);
+  box-shadow:inset -8px -8px 16px rgba(0,0,0,.45),inset 4px 4px 10px rgba(255,255,255,.15),0 5px 16px rgba(0,0,0,.6);
+  background:radial-gradient(circle at 38% 35%,#fff 0%,#ddd 50%,#aaa 100%);
+  transition:transform .07s,box-shadow .12s;overflow:hidden;}
+.rcp-ball::before{content:'';position:absolute;inset:0;border-radius:50%;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,28 65,40 60,58 40,58 35,40' fill='%23111' opacity='0.85'/%3E%3Cline x1='50' y1='28' x2='50' y2='8' stroke='%23111' stroke-width='3.5' opacity='0.7'/%3E%3Cline x1='65' y1='40' x2='84' y2='32' stroke='%23111' stroke-width='3.5' opacity='0.7'/%3E%3Cline x1='60' y1='58' x2='72' y2='76' stroke='%23111' stroke-width='3.5' opacity='0.7'/%3E%3Cline x1='40' y1='58' x2='28' y2='76' stroke='%23111' stroke-width='3.5' opacity='0.7'/%3E%3Cline x1='35' y1='40' x2='16' y2='32' stroke='%23111' stroke-width='3.5' opacity='0.7'/%3E%3C/svg%3E");
+  background-size:cover;}
+.rcp-ball.rcp-glow{border-color:#f1c40f;box-shadow:inset -8px -8px 16px rgba(0,0,0,.45),0 0 20px #f1c40f,0 0 40px rgba(241,196,15,.4);}
+.rcp-ball.rcp-pressing{transform:translateX(-50%) scale(.86) translateY(4px)!important;}
+.rcp-flash{position:absolute;inset:0;z-index:40;pointer-events:none;opacity:0;transition:opacity .15s;}
+.rcp-flash.bad{background:rgba(231,76,60,.4);opacity:1;}
+.rcp-flash.good{background:rgba(46,204,113,.2);opacity:1;}
+.rcp-qwrap{display:flex;flex-direction:column;align-items:center;gap:7px;width:100%;max-width:320px;}
+.rcp-qq{font-weight:900;font-size:clamp(.82rem,3.2vw,1.15rem);color:#fff;letter-spacing:.5px;text-align:center;margin-bottom:3px;}
+.rcp-qopt{width:100%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.25);color:#fff;
+  padding:7px 11px;border-radius:9px;font-weight:600;font-size:.8rem;cursor:pointer;text-align:left;transition:background .15s,border-color .15s;}
+.rcp-qopt.rcp-correct{background:rgba(46,204,113,.4);border-color:#2ecc71;}
+.rcp-qopt.rcp-wrong{background:rgba(231,76,60,.4);border-color:#e74c3c;}
+.rcp-qfb{font-size:.74rem;font-weight:600;color:#fff;background:rgba(0,0,0,.5);padding:5px 10px;border-radius:8px;display:none;text-align:center;}
+.rcp-step{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:6px 10px;width:100%;max-width:280px;font-size:.7rem;color:rgba(255,255,255,.9);}
+.rcp-snum{font-weight:900;font-size:1rem;color:#f1c40f;min-width:18px;}
+.rcp-badges{display:flex;gap:7px;justify-content:center;margin:7px 0;flex-wrap:wrap;}
+.rcp-badge{background:rgba(241,196,15,.2);border:2px solid #f1c40f;border-radius:7px;padding:4px 9px;font-weight:900;font-size:.75rem;color:#f1c40f;letter-spacing:1px;}
+.rcp-frag{position:absolute;pointer-events:none;border-radius:50%;animation:rcpFrag .8s ease-out forwards;}
+@keyframes rcpFrag{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0;}}
+</style>
+<div class="rcp-root" id="rcp-root">
+  <div class="rcp-screen" id="rcp-start">
+    <div style="font-size:2rem;margin-bottom:3px">⚽</div>
+    <div class="rcp-title">RCP: Salva a tu<br>Compañera</div>
+    <p class="rcp-sub">Tu compañera se desmayó en el campo. Mantén su corazón latiendo.</p>
+    <div class="rcp-ibox"><h3>📋 Cómo Jugar</h3><ul>
+      <li>⚽ Golpea el balón cuando parpadee en <b>dorado</b></li>
+      <li>💓 Ritmo: <b>100–120/min</b></li>
+      <li>❤️ 3 vidas — no te desritmices</li>
+      <li>🏆 30 compresiones → quiz</li>
+    </ul></div>
+    <button class="rcp-btn" id="rcp-btn-start">INICIAR</button>
+  </div>
+  <div class="rcp-screen rcp-hidden" id="rcp-countdown">
+    <div style="font-size:.8rem;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.6);margin-bottom:6px;">PREPARÁNDOTE EN...</div>
+    <div class="rcp-cd-num" id="rcp-cd-num">3</div>
+    <div style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:8px;" id="rcp-cd-hint">Coloca tus manos sobre el esternón</div>
+  </div>
+  <div class="rcp-screen rcp-hidden" id="rcp-gameover">
+    <div style="font-size:2rem;margin-bottom:3px">🟥</div>
+    <div class="rcp-title" style="color:#e74c3c">TARJETA ROJA</div>
+    <p class="rcp-sub">¡Perdiste el ritmo! Inténtalo de nuevo.</p>
+    <div class="rcp-ibox"><h3>💡 Recuerda</h3><ul>
+      <li>🎵 Ritmo: como "Stayin' Alive"</li>
+      <li>👊 Presiona cuando el balón brille en dorado</li>
+    </ul></div>
+    <button class="rcp-btn rcp-red" id="rcp-btn-retry">REINTENTAR</button>
+  </div>
+  <div class="rcp-screen rcp-hidden" id="rcp-lvl2intro">
+    <div style="font-size:2rem;margin-bottom:3px">🥇</div>
+    <div class="rcp-title" style="color:#f1c40f">¡30 Compresiones!</div>
+    <p class="rcp-sub">Aprende la <b>Posición Lateral de Seguridad</b> mientras llega la ambulancia.</p>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;margin-bottom:10px;width:100%;">
+      <div class="rcp-step"><div class="rcp-snum">1</div><div>Arrodíllate al lado de la persona</div></div>
+      <div class="rcp-step"><div class="rcp-snum">2</div><div>Dobla el brazo más cercano en ángulo recto</div></div>
+      <div class="rcp-step"><div class="rcp-snum">3</div><div>Lleva el otro brazo cruzado sobre el pecho</div></div>
+      <div class="rcp-step"><div class="rcp-snum">4</div><div>Dobla la rodilla lejana y gira suavemente</div></div>
+      <div class="rcp-step"><div class="rcp-snum">5</div><div>Ajusta la cabeza para la vía aérea</div></div>
+    </div>
+    <button class="rcp-btn" id="rcp-btn-quiz">SIGUIENTE: QUIZ ▶</button>
+  </div>
+  <div class="rcp-screen rcp-hidden" id="rcp-quiz">
+    <div style="font-size:1.3rem;margin-bottom:3px">🧠</div>
+    <div class="rcp-title" style="font-size:clamp(.9rem,4vw,1.5rem)">Primeros Auxilios</div>
+    <div class="rcp-qwrap" id="rcp-qwrap"></div>
+    <div class="rcp-qfb" id="rcp-qfb"></div>
+    <button class="rcp-btn" id="rcp-btn-next" style="display:none;margin-top:8px">SIGUIENTE ▶</button>
+  </div>
+  <div class="rcp-screen rcp-hidden" id="rcp-win">
+    <div style="font-size:2.4rem;margin-bottom:3px">🏆</div>
+    <div class="rcp-title" style="color:#f1c40f">¡Héroe del Campo!</div>
+    <p class="rcp-sub" id="rcp-win-sub">Completaste el entrenamiento de RCP.</p>
+    <div class="rcp-badges"><div class="rcp-badge">⚽ RCP NIVEL 1</div><div class="rcp-badge">🧠 QUIZ</div></div>
+    <div class="rcp-ibox"><h3>📞 Emergencia Real</h3><ul>
+      <li>📱 Llama al <b>911</b> inmediatamente</li>
+      <li>👊 30 compresiones, 2 ventilaciones</li>
+      <li>⚡ Busca un <b>DEA</b> si está disponible</li>
+    </ul></div>
+    <button class="rcp-btn" id="rcp-btn-replay">JUGAR DE NUEVO</button>
+  </div>
+  <div class="rcp-hud rcp-hidden" id="rcp-hud">
+    <div class="rcp-lives" id="rcp-lives">❤️❤️❤️</div>
+    <div class="rcp-score">COMP: <span id="rcp-comp">0</span>/30</div>
+    <div class="rcp-bpm" id="rcp-bpm">BPM: --</div>
+  </div>
+  <div class="rcp-rl" id="rcp-rl">⚽ ¡PRESIONA!</div>
+  <div class="rcp-hz rcp-hidden" id="rcp-hz">
+    <div class="rcp-heart" id="rcp-heart">🫀</div>
+    <canvas class="rcp-ecg" id="rcp-ecg"></canvas>
+  </div>
+  <div class="rcp-patient rcp-hidden" id="rcp-patient">
+    <svg class="rcp-svg" id="rcp-svg" viewBox="0 0 120 200" xmlns="http://www.w3.org/2000/svg">
+      <g transform="rotate(-80,60,100)">
+        <rect x="35" y="130" width="18" height="55" rx="9" fill="#e74c3c"/>
+        <rect x="67" y="130" width="18" height="55" rx="9" fill="#e74c3c"/>
+        <rect x="35" y="160" width="18" height="25" rx="8" fill="#ecf0f1"/>
+        <rect x="67" y="160" width="18" height="25" rx="8" fill="#ecf0f1"/>
+        <ellipse cx="44" cy="186" rx="13" ry="7" fill="#2c3e50"/>
+        <ellipse cx="76" cy="186" rx="13" ry="7" fill="#2c3e50"/>
+        <rect x="28" y="75" width="64" height="60" rx="14" fill="#c0392b"/>
+        <text x="60" y="113" text-anchor="middle" font-family="sans-serif" font-size="22" fill="rgba(255,255,255,0.7)">9</text>
+        <rect x="8" y="82" width="20" height="42" rx="10" fill="#fca97a"/>
+        <rect x="92" y="82" width="20" height="42" rx="10" fill="#fca97a"/>
+        <rect x="50" y="60" width="20" height="20" rx="8" fill="#fca97a"/>
+        <ellipse cx="60" cy="46" rx="26" ry="28" fill="#fca97a"/>
+        <ellipse cx="60" cy="22" rx="26" ry="14" fill="#4a2a10"/>
+        <rect x="34" y="20" width="52" height="18" rx="5" fill="#4a2a10"/>
+      </g>
+    </svg>
+  </div>
+  <div class="rcp-bar-wrap rcp-hidden" id="rcp-bar">
+    <div class="rcp-bar-bg"><div class="rcp-bar-fill" id="rcp-fill"></div></div>
+    <div class="rcp-bar-hint">Presiona en el momento preciso</div>
+  </div>
+  <div class="rcp-ball rcp-hidden" id="rcp-ball"></div>
+  <div class="rcp-flash" id="rcp-flash"></div>
+</div>`;
+
+    // ── LÓGICA RCP ─────────────────────────────────────────────────
+    (function() {
+        const $ = id => wrapper.querySelector('#' + id);
+        const CYCLE_MS=545, WINDOW_MS=220;
+        let lives,compressions,gameActive,windowOpen,windowTimer;
+        let rhythmIv,lastPress=0,bpmVals=[],ecgCtx,ecgW,ecgH,ecgX=0;
+        let quizIdx=0,quizScore=0;
+
+        const quizData=[
+            {q:'¿Cuántas compresiones por minuto en RCP adulto?',opts:['60–80/min','100–120/min','150–180/min','40–60/min'],c:1,ex:'El ritmo recomendado es 100–120/min, como "Stayin\'Alive" de los Bee Gees.'},
+            {q:'¿Dónde se colocan las manos para RCP?',opts:['Sobre el estómago','Centro del pecho (esternón)','Costillas laterales','Corazón izquierdo'],c:1,ex:'En el centro del pecho, mitad inferior del esternón, brazos extendidos.'},
+            {q:'¿Cuánto debe hundirse el pecho en cada compresión?',opts:['1–2 cm','5–6 cm','8–10 cm','No debe hundirse'],c:1,ex:'Entre 5 y 6 cm. Poco = no bombea sangre; demasiado = lesiones.'},
+            {q:'¿Qué significa OVACE?',opts:['Obstrucción de Vía Aérea por Cuerpo Extraño','Oxigenación Vital Artificial','Operación Vascular Aórtica','Obstrucción Venosa Arterial'],c:0,ex:'OVACE = atragantamiento. Se trata con la Maniobra de Heimlich.'},
+            {q:'¿Cuándo NO debes mover a una persona lesionada?',opts:['Cuando está consciente','Sospechas lesión en columna','Siempre que sea posible','Solo si está mojada'],c:1,ex:'Sospecha de lesión en columna → no muevas; puede causar parálisis.'},
+        ];
+
+        function showOnly(id){
+            ['rcp-start','rcp-countdown','rcp-gameover','rcp-lvl2intro','rcp-quiz','rcp-win']
+                .forEach(s=>{const el=$(s);if(el)el.classList.add('rcp-hidden');});
+            if(id){const el=$(id);if(el)el.classList.remove('rcp-hidden');}
+        }
+        function hudShow(v){
+            [['rcp-hud','flex'],['rcp-rl','block'],['rcp-hz','flex'],['rcp-patient','block'],['rcp-ball','block'],['rcp-bar','block']]
+                .forEach(([id,d])=>{const el=$(id);if(!el)return;if(v){el.classList.remove('rcp-hidden');el.style.display=d;}else{el.classList.add('rcp-hidden');el.style.display='none';}});
+        }
+        function startCountdown(){
+            showOnly('rcp-countdown');
+            const hints=['Coloca tus manos sobre el esternón','Entrelaza dedos, codos extendidos','¡Empieza a comprimir con fuerza!'];
+            let n=3;
+            const numEl=$('rcp-cd-num'),hintEl=$('rcp-cd-hint');
+            function tick(){
+                if(numEl){numEl.textContent=n>0?n:'¡YA!';numEl.style.animation='none';void numEl.offsetWidth;numEl.style.animation='rcpBlast .9s ease forwards';}
+                if(hintEl)hintEl.textContent=hints[3-Math.max(n,1)]||'';
+                n--;
+                if(n>=-1)setTimeout(tick,1000);else{showOnly(null);startLevel1();}
+            }
+            tick();
+        }
+        function startLevel1(){
+            lives=3;compressions=0;gameActive=true;ecgX=0;windowOpen=false;lastPress=0;bpmVals=[];
+            updateLives();updateComp();hudShow(true);
+            const fill=$('rcp-fill');if(fill)fill.style.width='0%';
+            const rl=$('rcp-rl');if(rl)rl.textContent='⚽ ¡PRESIONA!';
+            const bpm=$('rcp-bpm');if(bpm)bpm.textContent='BPM: --';
+            const sv=$('rcp-svg');if(sv)sv.style.opacity='1';
+            initECG();scheduleNext();drawBaseline();
+        }
+        function scheduleNext(){
+            if(!gameActive)return;
+            const delay=CYCLE_MS-WINDOW_MS;let elapsed=0;
+            clearInterval(rhythmIv);
+            const fill=$('rcp-fill');
+            rhythmIv=setInterval(()=>{
+                if(!gameActive){clearInterval(rhythmIv);return;}
+                elapsed+=20;
+                if(fill)fill.style.width=Math.min(elapsed/delay*100,100)+'%';
+                if(elapsed>=delay){clearInterval(rhythmIv);openWindow();}
+            },20);
+        }
+        function openWindow(){
+            if(!gameActive)return;
+            windowOpen=true;
+            const ball=$('rcp-ball');if(ball)ball.classList.add('rcp-glow');
+            const rl=$('rcp-rl');if(rl)rl.textContent='⚽ ¡AHORA!';
+            const fill=$('rcp-fill');if(fill){fill.style.width='100%';fill.style.background='linear-gradient(90deg,#f1c40f,#e67e22)';}
+            windowTimer=setTimeout(()=>{if(windowOpen){windowOpen=false;const b=$('rcp-ball');if(b)b.classList.remove('rcp-glow');resetFill();missedPress();}},WINDOW_MS);
+        }
+        function resetFill(){const fill=$('rcp-fill');if(fill)fill.style.background='linear-gradient(90deg,#2ecc71,#f1c40f)';}
+        function doPressball(){
+            if(!gameActive)return;
+            const ball=$('rcp-ball');if(!ball)return;
+            ball.classList.add('rcp-pressing');setTimeout(()=>ball.classList.remove('rcp-pressing'),90);
+            if(windowOpen){
+                clearTimeout(windowTimer);windowOpen=false;ball.classList.remove('rcp-glow');
+                const fill=$('rcp-fill');if(fill)fill.style.width='0%';resetFill();
+                compressions++;updateComp();goodPress();
+                if(compressions>=30){setTimeout(()=>levelComplete(),400);return;}
+                scheduleNext();
+            }else{missedPress();}
+        }
+        function goodPress(){
+            playBubble(); // sonido burbuja en compresión correcta
+            const h=$('rcp-heart');if(h){h.classList.add('beat');setTimeout(()=>h.classList.remove('beat'),120);}
+            const sv=$('rcp-svg');if(sv){sv.classList.add('rcp-compress');setTimeout(()=>sv.classList.remove('rcp-compress'),90);}
+            drawSpike(true);doFlash('good');
+            const now=Date.now();
+            if(lastPress){const bpm=Math.round(60000/(now-lastPress));bpmVals.push(bpm);if(bpmVals.length>4)bpmVals.shift();const avg=Math.round(bpmVals.reduce((a,b)=>a+b,0)/bpmVals.length);const bpmEl=$('rcp-bpm');if(bpmEl)bpmEl.textContent='BPM: '+avg;}
+            lastPress=now;
+        }
+        function missedPress(){drawSpike(false);doFlash('bad');loseLife();}
+        function loseLife(){
+            lives--;updateLives();
+            if(lives<=0){gameActive=false;clearInterval(rhythmIv);clearTimeout(windowTimer);explodePatient();setTimeout(()=>{hudShow(false);showOnly('rcp-gameover');},1000);}
+            else{if(!windowOpen){const fill=$('rcp-fill');if(fill)fill.style.width='0%';scheduleNext();}}
+        }
+        function updateLives(){const el=$('rcp-lives');if(!el)return;let h='';for(let i=0;i<3;i++)h+=i<lives?'❤️':'🖤';el.textContent=h;}
+        function updateComp(){const el=$('rcp-comp');if(el)el.textContent=compressions;}
+        function levelComplete(){gameActive=false;clearInterval(rhythmIv);clearTimeout(windowTimer);hudShow(false);showOnly('rcp-lvl2intro');}
+        function doFlash(type){const f=$('rcp-flash');if(!f)return;f.className='rcp-flash '+type;setTimeout(()=>{f.className='rcp-flash';},type==='bad'?180:160);}
+        function explodePatient(){
+            const sv=$('rcp-svg');if(sv)sv.style.opacity='0';
+            const root=$('rcp-root');
+            for(let i=0;i<12;i++){  // menos fragmentos en móvil
+                const fr=document.createElement('div');fr.className='rcp-frag';
+                const size=7+Math.random()*13,ang=Math.random()*360,dist=40+Math.random()*100;
+                fr.style.cssText=`width:${size}px;height:${size}px;background:hsl(${350+Math.random()*20},80%,${40+Math.random()*20}%);left:50%;top:40%;--dx:${Math.cos(ang*Math.PI/180)*dist}px;--dy:${Math.sin(ang*Math.PI/180)*dist-Math.random()*60}px;animation-duration:${.6+Math.random()*.4}s;`;
+                if(root)root.appendChild(fr);setTimeout(()=>fr.remove(),1100);
+            }
+        }
+        function initECG(){const c=$('rcp-ecg');if(!c)return;ecgW=c.offsetWidth||220;ecgH=c.offsetHeight||38;c.width=ecgW;c.height=ecgH;ecgCtx=c.getContext('2d');ecgX=0;}
+        function drawBaseline(){
+            if(!ecgCtx||!gameActive)return;
+            const mid=ecgH/2,step=4;let x=ecgX;
+            ecgCtx.strokeStyle='rgba(46,204,113,.5)';ecgCtx.lineWidth=1.5;
+            const draw=()=>{if(!gameActive)return;ecgCtx.clearRect(x,0,step+1,ecgH);ecgCtx.beginPath();ecgCtx.moveTo(x,mid);ecgCtx.lineTo(x+step,mid);ecgCtx.stroke();x+=step;if(x>ecgW){ecgCtx.clearRect(0,0,ecgW,ecgH);x=0;}ecgX=x;requestAnimationFrame(draw);};
+            draw();
+        }
+        function drawSpike(good){
+            if(!ecgCtx)return;
+            const mid=ecgH/2,x=ecgX,c=good?'#2ecc71':'#e74c3c';
+            ecgCtx.strokeStyle=c;ecgCtx.lineWidth=2;ecgCtx.shadowColor=c;ecgCtx.shadowBlur=6;
+            ecgCtx.beginPath();ecgCtx.moveTo(x,mid);ecgCtx.lineTo(x+3,mid+3);ecgCtx.lineTo(x+6,mid-16);ecgCtx.lineTo(x+9,mid+10);ecgCtx.lineTo(x+12,mid-5);ecgCtx.lineTo(x+15,mid);ecgCtx.stroke();ecgCtx.shadowBlur=0;
+        }
+        function renderQ(){
+            const d=quizData[quizIdx];
+            const fb=$('rcp-qfb');if(fb)fb.style.display='none';
+            const nb=$('rcp-btn-next');if(nb)nb.style.display='none';
+            const w=$('rcp-qwrap');if(!w)return;
+            w.innerHTML=`<div class="rcp-qq">${quizIdx+1}/${quizData.length}: ${d.q}</div>`+d.opts.map((o,i)=>`<button class="rcp-qopt" data-i="${i}">${o}</button>`).join('');
+            w.querySelectorAll('.rcp-qopt').forEach(b=>{
+                b.addEventListener('click',function(){
+                    const idx=parseInt(this.dataset.i);
+                    w.querySelectorAll('.rcp-qopt').forEach((x,j)=>{x.onclick=null;if(j===d.c)x.classList.add('rcp-correct');else if(j===idx)x.classList.add('rcp-wrong');});
+                    const fb2=$('rcp-qfb');if(fb2){fb2.style.display='block';fb2.style.color=idx===d.c?'#2ecc71':'#e74c3c';fb2.textContent=(idx===d.c?'✅ ':'❌ ')+d.ex;if(idx===d.c)quizScore++;}
+                    const nb2=$('rcp-btn-next');if(nb2){nb2.style.display='block';nb2.textContent=quizIdx<quizData.length-1?'SIGUIENTE ▶':'VER RESULTADO ▶';}
+                });
+            });
+        }
+        function nextQ(){quizIdx++;if(quizIdx<quizData.length){renderQ();}else{showOnly('rcp-win');const sub=$('rcp-win-sub');if(sub)sub.textContent=`Respondiste ${quizScore}/${quizData.length} correctamente. ¡Ahora sabes actuar en emergencias!`;}}
+        function restartFull(){lives=3;compressions=0;bpmVals=[];lastPress=0;quizIdx=0;quizScore=0;const b=$('rcp-bpm');if(b)b.textContent='BPM: --';showOnly('rcp-start');}
+
+        const bs=$('rcp-btn-start');   if(bs)  bs.addEventListener('click',startCountdown);
+        const br=$('rcp-btn-retry');   if(br)  br.addEventListener('click',()=>{const sv=$('rcp-svg');if(sv)sv.style.opacity='1';startCountdown();});
+        const bq=$('rcp-btn-quiz');    if(bq)  bq.addEventListener('click',()=>{quizIdx=0;quizScore=0;showOnly('rcp-quiz');renderQ();});
+        const bn=$('rcp-btn-next');    if(bn)  bn.addEventListener('click',nextQ);
+        const brp=$('rcp-btn-replay'); if(brp) brp.addEventListener('click',restartFull);
+
+        const ball=$('rcp-ball');
+        if(ball){
+            ball.addEventListener('mousedown',e=>{e.preventDefault();doPressball();});
+            ball.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();doPressball();},{passive:false});
+        }
+        showOnly('rcp-start');
+    })();
+
+    return {
+        cleanup: () => {
+            cancelAnimationFrame(vafRaf);
+            viruses.forEach(v=>v.el.remove()); viruses.length=0;
+            window.removeEventListener('resize', recalcEkg);
+            if(drAudioCtx){try{drAudioCtx.close();}catch(e){} drAudioCtx=null;}
+            const elD=document.getElementById('glow-doctora');
+            const elN=document.getElementById('glow-nina');
+            if(elD){elD.style.zIndex='';elD.style.position='';elD.style.filter='';elD.style.animation='';}
+            if(elN){elN.style.zIndex='';elN.style.position='';elN.style.filter='';elN.style.animation='';}
+            cont.remove();
+        }
+    };
+}
+
 
 
 
@@ -2042,222 +2568,6 @@ function efectoBombera(vfx) {
 
 
 // ─── 6. POLICÍA — barra de luces con botones ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-function efectoPolicia(vfx) {
-
-    // ── CAPAS DEL MURAL ────────────────────────────────────────────
-    const NINA_Z = 65;
-    const elNina = document.getElementById('glow-nina');
-    if (elNina) {
-        elNina.style.zIndex    = String(NINA_Z);
-        elNina.style.position  = 'absolute';
-        elNina.style.filter    = 'brightness(1.6) drop-shadow(0 0 20px rgba(255,255,255,1))';
-        elNina.style.animation = 'nina-pulso 1.8s ease-in-out infinite';
-    }
-    const PROF = ['glow-doctora','glow-ingeniera','glow-maestra','glow-bombera','glow-repartidora','glow-futbolista'];
-    PROF.forEach(id => {
-        const el = document.getElementById(id); if (!el) return;
-        el.style.animation = 'none'; el.style.filter = 'brightness(0.7)'; el.style.opacity = '0.7';
-    });
-    const FONDO = ['glow-jugadoras','glow-azteca','glow-historia','glow-nosotras'];
-    FONDO.forEach(id => {
-        const el = document.getElementById(id); if (!el) return;
-        el.style.animation = 'none'; el.style.filter = 'brightness(0.6)'; el.style.opacity = '0.6';
-    });
-
-    // ── WRAPPER ────────────────────────────────────────────────────
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:absolute;inset:0;z-index:60;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,1.5vh,14px);padding:clamp(6px,2vw,16px);box-sizing:border-box;';
-    vfx.appendChild(wrapper);
-
-    wrapper.innerHTML = `<style>
-/* ── Luces barra ── */
-.np-bar{display:flex;gap:clamp(3px,1vw,6px);padding:clamp(5px,1.2vw,10px);
-  background:rgba(0,0,0,.45);border-radius:10px;border:1px solid rgba(255,255,255,.08);
-  backdrop-filter:blur(6px);justify-content:center;width:100%;box-sizing:border-box;}
-.np-l{flex:1;max-width:clamp(28px,7vw,52px);height:clamp(38px,8vh,80px);
-  border-radius:6px;background:#1a1a1a;position:relative;overflow:hidden;transition:background .15s;}
-.np-l .np-i{position:absolute;inset:3px;border-radius:4px;background:rgba(255,255,255,.04);}
-
-.np-l.blue  {animation:npB1 .5s step-end infinite;}
-.np-l.blue2 {animation:npB1 .5s step-end infinite;animation-delay:.25s;}
-.np-l.blue3 {animation:npB1 .5s step-end infinite;animation-delay:.12s;}
-.np-l.red   {animation:npR1 .5s step-end infinite;}
-.np-l.red2  {animation:npR1 .5s step-end infinite;animation-delay:.25s;}
-.np-l.red3  {animation:npR1 .5s step-end infinite;animation-delay:.12s;}
-.np-l.spot  {background:#ffffcc!important;box-shadow:0 0 28px #ffff88,0 0 60px rgba(255,255,180,.4);animation:none;}
-.np-l.off   {background:#1a1a1a!important;box-shadow:none!important;animation:none!important;}
-.np-l.caution  {animation:npC1 .55s step-end infinite;}
-.np-l.caution2 {animation:npC1 .55s step-end infinite;animation-delay:.27s;}
-.np-l.caution3 {animation:npC1 .55s step-end infinite;animation-delay:.14s;}
-.np-l.sos   {animation:npSOS .18s step-end infinite;}
-
-@keyframes npB1{0%,49%{background:#0044ff;box-shadow:0 0 18px #0044ff,0 0 35px rgba(0,68,255,.5);}50%,100%{background:#0a0a22;box-shadow:none;}}
-@keyframes npR1{0%,49%{background:#ff1100;box-shadow:0 0 18px #ff1100,0 0 35px rgba(255,17,0,.5);}50%,100%{background:#220a0a;box-shadow:none;}}
-@keyframes npC1{0%,49%{background:#ffaa00;box-shadow:0 0 18px #ffaa00,0 0 30px rgba(255,170,0,.4);}50%,100%{background:#1a1200;box-shadow:none;}}
-@keyframes npSOS{0%,49%{background:#fff;box-shadow:0 0 28px #fff,0 0 60px rgba(255,255,255,.6);}50%,100%{background:#111;box-shadow:none;}}
-
-/* ── Paneles fondo ── */
-.np-bg{position:absolute;inset:0;display:grid;
-  grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
-  gap:clamp(3px,0.8vw,8px);padding:clamp(3px,0.8vw,8px);
-  pointer-events:none;z-index:0;}
-.np-bp{border-radius:8px;background:transparent;transition:background .15s;}
-.np-bp.blue   {animation:bpB .5s step-end infinite;}
-.np-bp.blue2  {animation:bpB .5s step-end infinite;animation-delay:.25s;}
-.np-bp.blue3  {animation:bpB .5s step-end infinite;animation-delay:.12s;}
-.np-bp.red    {animation:bpR .5s step-end infinite;}
-.np-bp.red2   {animation:bpR .5s step-end infinite;animation-delay:.25s;}
-.np-bp.red3   {animation:bpR .5s step-end infinite;animation-delay:.12s;}
-.np-bp.spot   {animation:bpS .2s step-end infinite;}
-.np-bp.caution  {animation:bpCA .55s step-end infinite;}
-.np-bp.caution2 {animation:bpCA .55s step-end infinite;animation-delay:.27s;}
-.np-bp.caution3 {animation:bpCA .55s step-end infinite;animation-delay:.14s;}
-.np-bp.sos    {animation:bpSOS .18s step-end infinite;}
-.np-bp.off    {background:transparent!important;animation:none!important;}
-
-@keyframes bpB  {0%,49%{background:rgba(0,68,255,.35);}  50%,100%{background:transparent;}}
-@keyframes bpR  {0%,49%{background:rgba(255,17,0,.35);}   50%,100%{background:transparent;}}
-@keyframes bpS  {0%,49%{background:rgba(255,255,200,.4);} 50%,100%{background:transparent;}}
-@keyframes bpCA {0%,49%{background:rgba(255,170,0,.35);}  50%,100%{background:transparent;}}
-@keyframes bpSOS{0%,49%{background:rgba(255,255,255,.45);}50%,100%{background:transparent;}}
-
-/* ── Controles ── */
-.np-ctrl{position:relative;z-index:2;background:rgba(0,0,0,.55);
-  border:1px solid rgba(255,255,255,.1);border-radius:12px;
-  padding:clamp(7px,1.5vw,12px);backdrop-filter:blur(8px);
-  width:100%;max-width:clamp(260px,90vw,500px);box-sizing:border-box;}
-.np-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(4px,1vw,8px);}
-.np-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);
-  color:#fff;padding:clamp(6px,1.2vh,11px) 2px;border-radius:7px;cursor:pointer;
-  font-size:clamp(.58rem,1.4vw,.75rem);font-weight:600;letter-spacing:.3px;
-  transition:background .15s,border-color .15s;touch-action:manipulation;white-space:nowrap;}
-.np-btn:hover{background:rgba(255,255,255,.16);}
-.np-btn.active{border-color:#00f2ff;color:#00f2ff;background:rgba(0,242,255,.08);}
-.np-btn.sos-on{border-color:#ff3366;color:#ff3366;background:rgba(255,51,102,.12);}
-
-/* ── Slider ── */
-.np-slider-row{display:flex;align-items:center;gap:7px;margin-top:clamp(4px,0.8vh,9px);}
-.np-slider-row label{color:rgba(255,255,255,.6);font-size:clamp(.52rem,1.2vw,.68rem);white-space:nowrap;}
-.np-slider-row input[type=range]{flex:1;accent-color:#00f2ff;cursor:pointer;}
-</style>
-
-<div class="np-bg">
-  <div class="np-bp off" id="nbp1"></div><div class="np-bp off" id="nbp2"></div><div class="np-bp off" id="nbp3"></div>
-  <div class="np-bp off" id="nbp4"></div><div class="np-bp off" id="nbp5"></div><div class="np-bp off" id="nbp6"></div>
-</div>
-
-<div class="np-bar" style="position:relative;z-index:2;max-width:clamp(260px,90vw,500px);">
-  <div class="np-l blue"  id="nl1"><div class="np-i"></div></div>
-  <div class="np-l blue2" id="nl2"><div class="np-i"></div></div>
-  <div class="np-l blue3" id="nl3"><div class="np-i"></div></div>
-  <div class="np-l red"   id="nl4"><div class="np-i"></div></div>
-  <div class="np-l red2"  id="nl5"><div class="np-i"></div></div>
-  <div class="np-l red3"  id="nl6"><div class="np-i"></div></div>
-</div>
-
-<div class="np-ctrl">
-  <div class="np-btns">
-    <button class="np-btn active" id="np1">Secuencia 1</button>
-    <button class="np-btn"        id="np2">Secuencia 2</button>
-    <button class="np-btn"        id="np3">Spotlight</button>
-    <button class="np-btn"        id="np4">Precaución</button>
-    <button class="np-btn"        id="np5">Apagar</button>
-    <button class="np-btn"        id="np6">🆘 SOS</button>
-  </div>
-  <div class="np-slider-row">
-    <label>Brillo exterior</label>
-    <input type="range" id="np-slider" min="0" max="1" step="0.05" value="0.6">
-  </div>
-</div>`;
-
-    // ── HELPERS ────────────────────────────────────────────────────
-    const $ = id => wrapper.querySelector('#' + id);
-
-    function luces(map) {
-        Object.entries(map).forEach(([id, cls]) => { const el=$(id); if(el) el.className='np-l '+cls; });
-    }
-    function fondo(map) {
-        Object.entries(map).forEach(([id, cls]) => { const el=$(id); if(el) el.className='np-bp '+cls; });
-    }
-    function allLuces(cls) { ['nl1','nl2','nl3','nl4','nl5','nl6'].forEach(id=>{ const el=$(id); if(el) el.className='np-l '+cls; }); }
-    function allFondo(cls) { ['nbp1','nbp2','nbp3','nbp4','nbp5','nbp6'].forEach(id=>{ const el=$(id); if(el) el.className='np-bp '+cls; }); }
-    function act(btn) { wrapper.querySelectorAll('.np-btn').forEach(b=>b.classList.remove('active','sos-on')); btn.classList.add('active'); }
-    function apagarTodo() { allLuces('off'); allFondo('off'); sosActivo=false; }
-
-    // ── SOS ────────────────────────────────────────────────────────
-    let sosActivo = false;
-    async function flashSOS(onMs, offMs) {
-        if (!sosActivo) return;
-        allLuces('sos'); allFondo('sos');
-        await new Promise(r=>setTimeout(r,onMs));
-        if (!sosActivo) return;
-        allLuces('off'); allFondo('off');
-        await new Promise(r=>setTimeout(r,offMs));
-    }
-    async function cicloSOS() {
-        while (sosActivo) {
-            await flashSOS(160,100); await flashSOS(160,100); await flashSOS(160,220);
-            await flashSOS(580,160); await flashSOS(580,160); await flashSOS(580,220);
-            await flashSOS(160,100); await flashSOS(160,100); await flashSOS(160,700);
-        }
-    }
-
-    // ── SLIDER ─────────────────────────────────────────────────────
-    const slider = $('np-slider');
-    if (slider) slider.addEventListener('input', function() {
-        wrapper.style.setProperty('--np-bg-alpha', parseFloat(this.value));
-    });
-
-    // ── BOTONES ────────────────────────────────────────────────────
-    const b1=$('np1'); if(b1) b1.onclick=function(){ sosActivo=false; act(this);
-        luces({nl1:'blue',nl2:'blue2',nl3:'blue3',nl4:'red',nl5:'red2',nl6:'red3'});
-        fondo({nbp1:'blue',nbp2:'blue2',nbp3:'blue3',nbp4:'red',nbp5:'red2',nbp6:'red3'}); };
-
-    const b2=$('np2'); if(b2) b2.onclick=function(){ sosActivo=false; act(this);
-        luces({nl1:'blue',nl2:'red2',nl3:'blue3',nl4:'red',nl5:'blue2',nl6:'red3'});
-        fondo({nbp1:'blue',nbp2:'red2',nbp3:'blue3',nbp4:'red',nbp5:'blue2',nbp6:'red3'}); };
-
-    const b3=$('np3'); if(b3) b3.onclick=function(){ sosActivo=false; act(this);
-        luces({nl1:'off',nl2:'off',nl3:'spot',nl4:'spot',nl5:'off',nl6:'off'});
-        fondo({nbp1:'off',nbp2:'off',nbp3:'spot',nbp4:'spot',nbp5:'off',nbp6:'off'}); };
-
-    const b4=$('np4'); if(b4) b4.onclick=function(){ sosActivo=false; act(this);
-        luces({nl1:'caution',nl2:'caution3',nl3:'caution2',nl4:'caution2',nl5:'caution',nl6:'caution3'});
-        fondo({nbp1:'caution',nbp2:'caution3',nbp3:'caution2',nbp4:'caution2',nbp5:'caution',nbp6:'caution3'}); };
-
-    const b5=$('np5'); if(b5) b5.onclick=function(){ act(this); apagarTodo(); };
-
-    const b6=$('np6'); if(b6) b6.onclick=function(){
-        sosActivo=!sosActivo;
-        if (sosActivo) {
-            wrapper.querySelectorAll('.np-btn').forEach(b=>b.classList.remove('active','sos-on'));
-            this.classList.add('sos-on'); cicloSOS();
-        } else { act(this); apagarTodo(); this.classList.remove('sos-on'); }
-    };
-
-    if (b1) b1.click();
-
-    return {
-        cleanup: () => {
-            sosActivo = false;
-            [...PROF, ...FONDO].forEach(id => {
-                const el=document.getElementById(id); if(!el) return;
-                el.style.animation=''; el.style.filter=''; el.style.opacity='';
-            });
-            if (elNina) { elNina.style.zIndex=''; elNina.style.position=''; elNina.style.filter=''; elNina.style.animation=''; }
-            wrapper.remove();
-        }
-    };
-}
-
-
-
-
-
-
-
-
-
 
 
 // ─── 7. MAESTRA — tabla periódica con palabras en espacios vacios ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
